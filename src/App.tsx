@@ -290,13 +290,6 @@ export default function App() {
                                   <RefreshCw className="w-4 h-4 text-emerald-300 animate-spin" />
                                 </div>
                               )}
-                              <div className="absolute bottom-0 left-0 right-0 bg-white/80 backdrop-blur-[2px] py-0.5 flex justify-center">
-                                {cell.clueDirection === 'H' ? (
-                                  <ArrowLeft className="w-3 h-3 text-emerald-600" />
-                                ) : (
-                                  <ArrowDown className="w-3 h-3 text-emerald-600" />
-                                )}
-                              </div>
                             </div>
                             {/* Arrow outside the icon container for better visibility and print support */}
                             <div className={cn(
