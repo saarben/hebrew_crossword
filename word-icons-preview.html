@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>תשחצון — תצוגת אייקונים</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&family=IBM+Plex+Sans+Hebrew:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #fdfcfb;
+      --card: #fff;
+      --border: #e7e5e4;
+      --text: #2d3436;
+      --muted: #78716c;
+      --accent: #059669;
+      --warn-bg: #fff7ed;
+      --warn-border: #fdba74;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 2rem 1.25rem 3rem;
+      font-family: "IBM Plex Sans Hebrew", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    h1 {
+      font-family: "Frank Ruhl Libre", serif;
+      font-size: 1.75rem;
+      margin: 0 0 0.35rem;
+    }
+    .sub {
+      color: var(--muted);
+      font-size: 0.9rem;
+      max-width: 42rem;
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+    }
+    .stats {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 1.25rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+      gap: 0.85rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 0.65rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 0.4rem;
+      box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+    }
+    .card.missing {
+      background: var(--warn-bg);
+      border-color: var(--warn-border);
+    }
+    .img-wrap {
+      width: 4.5rem;
+      height: 4.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.65rem;
+      background: #f5f5f4;
+      overflow: hidden;
+    }
+    .img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .he {
+      font-weight: 600;
+      font-size: 1.05rem;
+      line-height: 1.3;
+    }
+    .label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-family: ui-monospace, monospace;
+      direction: ltr;
+    }
+    .lucide {
+      font-size: 0.65rem;
+      color: #a8a29e;
+      direction: ltr;
+    }
+    .badge {
+      font-size: 0.65rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 999px;
+      background: #ecfdf5;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .card.missing .badge {
+      background: #ffedd5;
+      color: #c2410c;
+    }
+  </style>
+</head>
+<body>
+  <h1>תצוגת אייקונים לרשימת המילים</h1>
+  <p class="sub">
+    אותם קבצי PNG של Microsoft Fluent 3D כמו באפליקציה (<code>getFluentEmojiUrl</code>).
+    שם רכיב Lucide מוצג ליד — לעזרה בהשוואה ל־<code>words.ts</code>.
+  </p>
+  <p class="stats" id="stats"></p>
+  <div class="grid" id="grid"></div>
+  <script>
+    const FLUENT_EMOJI_MAPPING = {
+  "Sun": "Sun",
+  "Cloud": "Cloud",
+  "Flower": "Cherry blossom",
+  "Tree": "Deciduous tree",
+  "Book": "Open book",
+  "Water": "Droplet",
+  "Milk": "Glass of milk",
+  "Apple": "Red apple",
+  "Ball": "Soccer ball",
+  "Car": "Automobile",
+  "Plane": "Airplane",
+  "Train": "Locomotive",
+  "Fish": "Fish",
+  "Dog": "Dog face",
+  "Cat": "Cat face",
+  "Star": "Star",
+  "Moon": "Crescent moon",
+  "Gift": "Wrapped gift",
+  "Party": "Party popper",
+  "Crown": "Crown",
+  "Sword": "Dagger",
+  "Shield": "Shield",
+  "Rainbow": "Rainbow",
+  "Arrow": "Left arrow",
+  "Clock": "Alarm clock",
+  "Lamp": "Light bulb",
+  "House": "House",
+  "Monitor": "Desktop computer",
+  "Camera": "Camera",
+  "Music": "Musical note",
+  "Heart": "Red heart",
+  "Smile": "Grinning face with smiling eyes",
+  "Coffee": "Hot beverage",
+  "Pizza": "Pizza",
+  "Cake": "Shortcake",
+  "Cookie": "Cookie",
+  "Shirt": "T-shirt",
+  "Glasses": "Glasses",
+  "Key": "Key",
+  "Umbrella": "Umbrella",
+  "Mountain": "Mountain",
+  "Sea": "Water wave",
+  "Leaf": "Leaf fluttering in wind",
+  "Fire": "Fire",
+  "Wind": "Wind face",
+  "Lightning": "High voltage",
+  "Snow": "Snowflake",
+  "Ghost": "Ghost",
+  "Rocket": "Rocket",
+  "Bike": "Bicycle",
+  "Anchor": "Anchor",
+  "Bell": "Bell",
+  "Bird": "Bird",
+  "Bone": "Bone",
+  "Bug": "Lady beetle",
+  "Bus": "Bus",
+  "Cherry": "Cherries",
+  "Rain": "Cloud with rain",
+  "Compass": "Compass",
+  "Diamond": "Gem stone",
+  "Dice": "Game die",
+  "Drum": "Drum",
+  "Egg": "Egg",
+  "Eye": "Eye",
+  "Feather": "Feather",
+  "Footprints": "Footprints",
+  "Hammer": "Hammer",
+  "Headphones": "Headphone",
+  "Infinity": "Infinity",
+  "Laptop": "Laptop",
+  "Bulb": "Light bulb",
+  "Lock": "Locked",
+  "Magnet": "Magnet",
+  "Mail": "Envelope",
+  "Map": "World map",
+  "Pin": "Round pushpin",
+  "Mic": "Microphone",
+  "Microscope": "Microscope",
+  "Mouse": "Computer mouse",
+  "Palette": "Artist palette",
+  "Paperclip": "Paperclip",
+  "Pen": "Pen",
+  "Phone": "Telephone receiver",
+  "Piano": "Musical keyboard",
+  "Pill": "Pill",
+  "Landing": "Airplane arrival",
+  "Takeoff": "Airplane departure",
+  "Plug": "Electric plug",
+  "Printer": "Printer",
+  "Puzzle": "Puzzle piece",
+  "Radio": "Radio",
+  "Recycle": "Recycling symbol",
+  "Scissors": "Scissors",
+  "Search": "Magnifying glass tilted left",
+  "Shell": "Spiral shell",
+  "Cart": "Shopping cart",
+  "Speaker": "Loudspeaker",
+  "Sprout": "Seedling",
+  "Stethoscope": "Stethoscope",
+  "Target": "Bullseye",
+  "Telescope": "Telescope",
+  "Tent": "Tent",
+  "Thermometer": "Thermometer",
+  "Ticket": "Ticket",
+  "Trash": "Wastebasket",
+  "Trophy": "Trophy",
+  "Truck": "Delivery truck",
+  "TV": "Television",
+  "Wand": "Magic wand",
+  "Wine": "Wine glass"
+};
+    const ENTRIES = [
+  {
+    "word": "שמש",
+    "lucide": "Sun",
+    "label": "Sun"
+  },
+  {
+    "word": "ענן",
+    "lucide": "Cloud",
+    "label": "Cloud"
+  },
+  {
+    "word": "פרח",
+    "lucide": "Flower",
+    "label": "Flower"
+  },
+  {
+    "word": "עץ",
+    "lucide": "Trees",
+    "label": "Tree"
+  },
+  {
+    "word": "ספר",
+    "lucide": "Book",
+    "label": "Book"
+  },
+  {
+    "word": "מים",
+    "lucide": "Droplet",
+    "label": "Water"
+  },
+  {
+    "word": "חלב",
+    "lucide": "Milk",
+    "label": "Milk"
+  },
+  {
+    "word": "תפוח",
+    "lucide": "Apple",
+    "label": "Apple"
+  },
+  {
+    "word": "כדור",
+    "lucide": "Circle",
+    "label": "Ball"
+  },
+  {
+    "word": "אוטו",
+    "lucide": "Car",
+    "label": "Car"
+  },
+  {
+    "word": "מטוס",
+    "lucide": "Plane",
+    "label": "Plane"
+  },
+  {
+    "word": "רכבת",
+    "lucide": "Train",
+    "label": "Train"
+  },
+  {
+    "word": "דג",
+    "lucide": "Fish",
+    "label": "Fish"
+  },
+  {
+    "word": "כלב",
+    "lucide": "Dog",
+    "label": "Dog"
+  },
+  {
+    "word": "חתול",
+    "lucide": "Cat",
+    "label": "Cat"
+  },
+  {
+    "word": "כוכב",
+    "lucide": "Star",
+    "label": "Star"
+  },
+  {
+    "word": "ירח",
+    "lucide": "Moon",
+    "label": "Moon"
+  },
+  {
+    "word": "מתנה",
+    "lucide": "Gift",
+    "label": "Gift"
+  },
+  {
+    "word": "מסיבה",
+    "lucide": "PartyPopper",
+    "label": "Party"
+  },
+  {
+    "word": "כתר",
+    "lucide": "Crown",
+    "label": "Crown"
+  },
+  {
+    "word": "חרב",
+    "lucide": "Sword",
+    "label": "Sword"
+  },
+  {
+    "word": "מגן",
+    "lucide": "Shield",
+    "label": "Shield"
+  },
+  {
+    "word": "קשת",
+    "lucide": "Rainbow",
+    "label": "Rainbow"
+  },
+  {
+    "word": "חץ",
+    "lucide": "ArrowLeft",
+    "label": "Arrow"
+  },
+  {
+    "word": "שעון",
+    "lucide": "Watch",
+    "label": "Clock"
+  },
+  {
+    "word": "מנורה",
+    "lucide": "Lamp",
+    "label": "Lamp"
+  },
+  {
+    "word": "בית",
+    "lucide": "Home",
+    "label": "House"
+  },
+  {
+    "word": "מסך",
+    "lucide": "Monitor",
+    "label": "Monitor"
+  },
+  {
+    "word": "מצלמה",
+    "lucide": "Camera",
+    "label": "Camera"
+  },
+  {
+    "word": "מוזיקה",
+    "lucide": "Music",
+    "label": "Music"
+  },
+  {
+    "word": "לב",
+    "lucide": "Heart",
+    "label": "Heart"
+  },
+  {
+    "word": "חיוך",
+    "lucide": "Smile",
+    "label": "Smile"
+  },
+  {
+    "word": "קפה",
+    "lucide": "Coffee",
+    "label": "Coffee"
+  },
+  {
+    "word": "פיצה",
+    "lucide": "Pizza",
+    "label": "Pizza"
+  },
+  {
+    "word": "עוגה",
+    "lucide": "Cake",
+    "label": "Cake"
+  },
+  {
+    "word": "עוגיה",
+    "lucide": "Cookie",
+    "label": "Cookie"
+  },
+  {
+    "word": "חולצה",
+    "lucide": "Shirt",
+    "label": "Shirt"
+  },
+  {
+    "word": "משקפיים",
+    "lucide": "Glasses",
+    "label": "Glasses"
+  },
+  {
+    "word": "מפתח",
+    "lucide": "Key",
+    "label": "Key"
+  },
+  {
+    "word": "מטריה",
+    "lucide": "Umbrella",
+    "label": "Umbrella"
+  },
+  {
+    "word": "הר",
+    "lucide": "Mountain",
+    "label": "Mountain"
+  },
+  {
+    "word": "ים",
+    "lucide": "Waves",
+    "label": "Sea"
+  },
+  {
+    "word": "עלה",
+    "lucide": "Leaf",
+    "label": "Leaf"
+  },
+  {
+    "word": "אש",
+    "lucide": "Flame",
+    "label": "Fire"
+  },
+  {
+    "word": "רוח",
+    "lucide": "Wind",
+    "label": "Wind"
+  },
+  {
+    "word": "ברק",
+    "lucide": "Zap",
+    "label": "Lightning"
+  },
+  {
+    "word": "שלג",
+    "lucide": "Snowflake",
+    "label": "Snow"
+  },
+  {
+    "word": "שד",
+    "lucide": "Ghost",
+    "label": "Ghost"
+  },
+  {
+    "word": "טיל",
+    "lucide": "Rocket",
+    "label": "Rocket"
+  },
+  {
+    "word": "אופניים",
+    "lucide": "Bike",
+    "label": "Bike"
+  },
+  {
+    "word": "עוגן",
+    "lucide": "Anchor",
+    "label": "Anchor"
+  },
+  {
+    "word": "פעמון",
+    "lucide": "Bell",
+    "label": "Bell"
+  },
+  {
+    "word": "ציפור",
+    "lucide": "Bird",
+    "label": "Bird"
+  },
+  {
+    "word": "עצם",
+    "lucide": "Bone",
+    "label": "Bone"
+  },
+  {
+    "word": "חיפושית",
+    "lucide": "Bug",
+    "label": "Bug"
+  },
+  {
+    "word": "אוטובוס",
+    "lucide": "Bus",
+    "label": "Bus"
+  },
+  {
+    "word": "דובדבן",
+    "lucide": "Cherry",
+    "label": "Cherry"
+  },
+  {
+    "word": "גשם",
+    "lucide": "CloudRain",
+    "label": "Rain"
+  },
+  {
+    "word": "מצפן",
+    "lucide": "Compass",
+    "label": "Compass"
+  },
+  {
+    "word": "יהלום",
+    "lucide": "Diamond",
+    "label": "Diamond"
+  },
+  {
+    "word": "קוביה",
+    "lucide": "Dice5",
+    "label": "Dice"
+  },
+  {
+    "word": "תוף",
+    "lucide": "Drum",
+    "label": "Drum"
+  },
+  {
+    "word": "ביצה",
+    "lucide": "Egg",
+    "label": "Egg"
+  },
+  {
+    "word": "עין",
+    "lucide": "Eye",
+    "label": "Eye"
+  },
+  {
+    "word": "נוצה",
+    "lucide": "Feather",
+    "label": "Feather"
+  },
+  {
+    "word": "עקבות",
+    "lucide": "Footprints",
+    "label": "Footprints"
+  },
+  {
+    "word": "פטיש",
+    "lucide": "Hammer",
+    "label": "Hammer"
+  },
+  {
+    "word": "אוזניות",
+    "lucide": "Headphones",
+    "label": "Headphones"
+  },
+  {
+    "word": "אינסוף",
+    "lucide": "Infinity",
+    "label": "Infinity"
+  },
+  {
+    "word": "לפטופ",
+    "lucide": "Laptop",
+    "label": "Laptop"
+  },
+  {
+    "word": "נורה",
+    "lucide": "Lightbulb",
+    "label": "Bulb"
+  },
+  {
+    "word": "מנעול",
+    "lucide": "Lock",
+    "label": "Lock"
+  },
+  {
+    "word": "מגנט",
+    "lucide": "Magnet",
+    "label": "Magnet"
+  },
+  {
+    "word": "מכתב",
+    "lucide": "Mail",
+    "label": "Mail"
+  },
+  {
+    "word": "מפה",
+    "lucide": "Map",
+    "label": "Map"
+  },
+  {
+    "word": "סיכה",
+    "lucide": "MapPin",
+    "label": "Pin"
+  },
+  {
+    "word": "מיקרופון",
+    "lucide": "Mic",
+    "label": "Mic"
+  },
+  {
+    "word": "מיקרוסקופ",
+    "lucide": "Microscope",
+    "label": "Microscope"
+  },
+  {
+    "word": "עכבר",
+    "lucide": "Mouse",
+    "label": "Mouse"
+  },
+  {
+    "word": "פלטה",
+    "lucide": "Palette",
+    "label": "Palette"
+  },
+  {
+    "word": "אטב",
+    "lucide": "Paperclip",
+    "label": "Paperclip"
+  },
+  {
+    "word": "עט",
+    "lucide": "Pen",
+    "label": "Pen"
+  },
+  {
+    "word": "טלפון",
+    "lucide": "Phone",
+    "label": "Phone"
+  },
+  {
+    "word": "פסנתר",
+    "lucide": "Piano",
+    "label": "Piano"
+  },
+  {
+    "word": "תרופה",
+    "lucide": "Pill",
+    "label": "Pill"
+  },
+  {
+    "word": "נחיתה",
+    "lucide": "PlaneLanding",
+    "label": "Landing"
+  },
+  {
+    "word": "המראה",
+    "lucide": "PlaneTakeoff",
+    "label": "Takeoff"
+  },
+  {
+    "word": "תקע",
+    "lucide": "Plug",
+    "label": "Plug"
+  },
+  {
+    "word": "מדפסת",
+    "lucide": "Printer",
+    "label": "Printer"
+  },
+  {
+    "word": "פאזל",
+    "lucide": "Puzzle",
+    "label": "Puzzle"
+  },
+  {
+    "word": "רדיו",
+    "lucide": "Radio",
+    "label": "Radio"
+  },
+  {
+    "word": "מיחזור",
+    "lucide": "Recycle",
+    "label": "Recycle"
+  },
+  {
+    "word": "מספריים",
+    "lucide": "Scissors",
+    "label": "Scissors"
+  },
+  {
+    "word": "זכוכית מגדלת",
+    "lucide": "Search",
+    "label": "Search"
+  },
+  {
+    "word": "צדף",
+    "lucide": "Shell",
+    "label": "Shell"
+  },
+  {
+    "word": "עגלה",
+    "lucide": "ShoppingCart",
+    "label": "Cart"
+  },
+  {
+    "word": "רמקול",
+    "lucide": "Speaker",
+    "label": "Speaker"
+  },
+  {
+    "word": "נבט",
+    "lucide": "Sprout",
+    "label": "Sprout"
+  },
+  {
+    "word": "סטטוסקופ",
+    "lucide": "Stethoscope",
+    "label": "Stethoscope"
+  },
+  {
+    "word": "מטרה",
+    "lucide": "Target",
+    "label": "Target"
+  },
+  {
+    "word": "טלסקופ",
+    "lucide": "Telescope",
+    "label": "Telescope"
+  },
+  {
+    "word": "אוהל",
+    "lucide": "Tent",
+    "label": "Tent"
+  },
+  {
+    "word": "מדחום",
+    "lucide": "Thermometer",
+    "label": "Thermometer"
+  },
+  {
+    "word": "כרטיס",
+    "lucide": "Ticket",
+    "label": "Ticket"
+  },
+  {
+    "word": "פח",
+    "lucide": "Trash2",
+    "label": "Trash"
+  },
+  {
+    "word": "גביע",
+    "lucide": "Trophy",
+    "label": "Trophy"
+  },
+  {
+    "word": "משאית",
+    "lucide": "Truck",
+    "label": "Truck"
+  },
+  {
+    "word": "טלוויזיה",
+    "lucide": "Tv",
+    "label": "TV"
+  },
+  {
+    "word": "שרביט",
+    "lucide": "Wand2",
+    "label": "Wand"
+  },
+  {
+    "word": "יין",
+    "lucide": "Wine",
+    "label": "Wine"
+  }
+];
+
+    function getFluentEmojiUrl(label) {
+      const emojiName = FLUENT_EMOJI_MAPPING[label];
+      if (!emojiName) return null;
+      const folderName = encodeURIComponent(emojiName);
+      const fileName = emojiName.toLowerCase().replace(/ /g, '_');
+      return 'https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@latest/assets/' + folderName + '/3D/' + fileName + '_3d.png';
+    }
+
+    const grid = document.getElementById('grid');
+    const stats = document.getElementById('stats');
+    let missing = 0;
+
+    ENTRIES.forEach((e) => {
+      const url = getFluentEmojiUrl(e.label);
+      if (!url) missing++;
+
+      const card = document.createElement('article');
+      card.className = 'card' + (url ? '' : ' missing');
+
+      const wrap = document.createElement('div');
+      wrap.className = 'img-wrap';
+      if (url) {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = e.label;
+        img.loading = 'lazy';
+        img.referrerPolicy = 'no-referrer';
+        wrap.appendChild(img);
+      } else {
+        wrap.textContent = '?';
+        wrap.style.fontSize = '1.5rem';
+        wrap.style.color = '#c2410c';
+      }
+
+      const he = document.createElement('div');
+      he.className = 'he';
+      he.textContent = e.word;
+
+      const lab = document.createElement('div');
+      lab.className = 'label';
+      lab.textContent = e.label;
+
+      const luc = document.createElement('div');
+      luc.className = 'lucide';
+      luc.textContent = e.lucide;
+
+      const badge = document.createElement('span');
+      badge.className = 'badge';
+      badge.textContent = url ? 'Fluent 3D' : 'אין מיפוי ב־iconMapping';
+
+      card.append(wrap, he, lab, luc, badge);
+      grid.appendChild(card);
+    });
+
+    stats.textContent =
+      ENTRIES.length +
+      ' מילים · ' +
+      (ENTRIES.length - missing) +
+      ' עם URL פלואנט · ' +
+      missing +
+      ' בלי מפתח ב־FLUENT_EMOJI_MAPPING';
+  </script>
+</body>
+</html>
