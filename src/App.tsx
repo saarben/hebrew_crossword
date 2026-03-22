@@ -15,7 +15,8 @@ import {
   ArrowDown,
   RefreshCw,
   Info,
-  ExternalLink
+  ExternalLink,
+  FileStack
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { clsx, type ClassValue } from 'clsx';
@@ -23,6 +24,13 @@ import { twMerge } from 'tailwind-merge';
 import { WORD_LIST } from './words';
 import { generateCrossword, CrosswordData, GridCell } from './crosswordGenerator';
 import { generateIcon } from './services/imageService';
+import {
+  BULK_PRINT_DEFAULT_COUNT,
+  BULK_PRINT_MAX,
+  buildBulkPrintDocument,
+  createRandomPuzzle,
+  writeBulkPrintWindow,
+} from './bulkPrint';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -37,6 +45,9 @@ export default function App() {
   const [isPrinting, setIsPrinting] = useState(false);
   const [isGeneratingIcons, setIsGeneratingIcons] = useState(false);
   const [bootError, setBootError] = useState<string | null>(null);
+  const [bulkCount, setBulkCount] = useState(BULK_PRINT_DEFAULT_COUNT);
+  const [bulkIncludeSolutions, setBulkIncludeSolutions] = useState(false);
+  const [bulkError, setBulkError] = useState<string | null>(null);
 
   const inputRefs = useRef<(HTMLInputElement | null)[][]>([]);
 
@@ -166,6 +177,38 @@ export default function App() {
       }, 250);
     } catch (error) {
       console.error('Print error:', error);
+    }
+  };
+
+  const handleBulkPrint = () => {
+    setBulkError(null);
+    // Open immediately on user gesture — delayed open + noopener often yields null in Chromium.
+    const w = window.open('about:blank', '_blank');
+    if (!w) {
+      setBulkError('הדפדפן חסם חלון חדש. אפשרו חלונות קופצים לאתר זה, או לחצו ״פתח בלשונית חדשה״ והריצו משם.');
+      return;
+    }
+    const n = Math.min(
+      BULK_PRINT_MAX,
+      Math.max(1, Math.floor(Number(bulkCount)) || 1)
+    );
+    try {
+      const puzzles: CrosswordData[] = [];
+      for (let i = 0; i < n; i++) {
+        puzzles.push(createRandomPuzzle(gridSize));
+      }
+      const html = buildBulkPrintDocument(puzzles, {
+        includeSolutions: bulkIncludeSolutions,
+      });
+      writeBulkPrintWindow(w, html);
+    } catch (e) {
+      console.error(e);
+      try {
+        w.close();
+      } catch {
+        /* ignore */
+      }
+      setBulkError(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -394,6 +437,52 @@ export default function App() {
                 <Download className="w-5 h-5 flex-shrink-0" />
                 <p>טיפ: לחצו על כפתור ההדפסה כדי לקבל דף עבודה מוכן למדפסת!</p>
               </div>
+
+              <section className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
+                <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                  <FileStack className="w-5 h-5 text-emerald-500" />
+                  הדפסת מספר תשחצים אקראיים
+                </h2>
+                <p className="text-sm text-stone-600 mb-4 leading-relaxed">
+                  יוצרים מספר תשחצים אקראיים בחלון חדש — כל תשחץ בדף נפרד. אפשר להדפיס או לשמור כ־PDF מתפריט המדפסת.
+                </p>
+                <div className="flex flex-col sm:flex-row sm:items-end gap-4 mb-4">
+                  <label className="flex flex-col gap-1.5 flex-1">
+                    <span className="text-xs font-semibold text-stone-500">כמה תשחצים?</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={BULK_PRINT_MAX}
+                      value={bulkCount}
+                      onChange={(e) => setBulkCount(Number(e.target.value))}
+                      className="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-stone-800 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    />
+                  </label>
+                  <span className="text-xs text-stone-400 pb-2">עד {BULK_PRINT_MAX}</span>
+                </div>
+                <label className="flex items-center gap-3 mb-4 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={bulkIncludeSolutions}
+                    onChange={(e) => setBulkIncludeSolutions(e.target.checked)}
+                    className="w-4 h-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm text-stone-700">להוסיף דפי פתרון (אחרי כל דפי התשחצים)</span>
+                </label>
+                {bulkError && (
+                  <p className="text-sm text-red-600 mb-3" role="alert">
+                    {bulkError}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={handleBulkPrint}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-stone-800 hover:bg-stone-900 text-white font-bold text-sm transition-all active:scale-[0.98]"
+                >
+                  <Printer className="w-4 h-4" />
+                  צור קובץ להדפסה
+                </button>
+              </section>
             </div>
           </div>
         </div>
