@@ -408,7 +408,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="py-10 text-center text-stone-400 text-xs print:hidden">
-        <p>© {new Date().getFullYear()} תשבצון - לומדים עברית בכיף</p>
+        <p>© {new Date().getFullYear()} תשחצון - לומדים עברית בכיף</p>
       </footer>
 
       {/* Print Styles */}
