@@ -78,7 +78,7 @@ export const WORD_LIST: WordInfo[] = [
   { word: 'מפתח', icon: Key, label: 'Key', imageUrl: 'https://loremflickr.com/200/200/key,metal/all' },
   { word: 'מטריה', icon: Umbrella, label: 'Umbrella', imageUrl: 'https://loremflickr.com/200/200/umbrella,rain/all' },
   { word: 'הר', icon: Mountain, label: 'Mountain', imageUrl: 'https://loremflickr.com/200/200/mountain,peak/all' },
-  { word: 'ים', icon: Waves, label: 'Sea', imageUrl: 'https://loremflickr.com/200/200/sea,ocean/all' },
+  { word: 'גל', icon: Waves, label: 'Sea', imageUrl: 'https://loremflickr.com/200/200/sea,ocean/all' },
   { word: 'עלה', icon: Leaf, label: 'Leaf', imageUrl: 'https://loremflickr.com/200/200/leaf,green/all' },
   { word: 'אש', icon: Flame, label: 'Fire', imageUrl: 'https://loremflickr.com/200/200/fire,flame/all' },
   { word: 'רוח', icon: Wind, label: 'Wind', imageUrl: 'https://loremflickr.com/200/200/wind,weather/all' },
