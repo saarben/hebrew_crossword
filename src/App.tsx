@@ -174,7 +174,7 @@ export default function App() {
   if (bootError) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-[#FDFCFB] text-red-800" dir="rtl">
-        <p className="text-center max-w-md">שגיאה בטעינת התשבץ: {bootError}</p>
+        <p className="text-center max-w-md">שגיאה בטעינת התשחץ: {bootError}</p>
       </div>
     );
   }
@@ -197,7 +197,7 @@ export default function App() {
               <RefreshCw className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">תשבצון</h1>
+              <h1 className="text-xl font-bold tracking-tight">תשחצון</h1>
               <div className="flex items-center gap-2">
                 <p className="text-xs text-stone-500 font-medium">תשחצים לכיתה א׳</p>
                 {isGeneratingIcons && (
