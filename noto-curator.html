@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Noto — מילים חדשות מוצעות</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #fff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --ok: #16a34a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "IBM Plex Sans Hebrew", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 1.25rem 1rem 3rem;
+    }
+    h1 { font-size: 1.35rem; margin: 0 0 0.35rem; }
+    .lead { color: var(--muted); font-size: 0.88rem; max-width: 44rem; line-height: 1.55; margin-bottom: 1rem; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding: 0.75rem 1rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .toolbar button {
+      font: inherit;
+      cursor: pointer;
+      padding: 0.4rem 0.85rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #fff;
+    }
+    .toolbar button.primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .toolbar button.success {
+      background: var(--ok);
+      color: #fff;
+      border-color: var(--ok);
+    }
+    .count { font-size: 0.85rem; color: var(--muted); margin-inline-start: auto; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+      gap: 0.65rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.6rem;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.25rem 0.5rem;
+      align-items: start;
+    }
+    .card input[type="checkbox"] {
+      grid-row: 1 / span 3;
+      width: 1.1rem;
+      height: 1.1rem;
+      margin-top: 0.2rem;
+    }
+    .img-cell {
+      grid-column: 2;
+      width: 3.75rem;
+      height: 3.75rem;
+      border-radius: 10px;
+      background: #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .img-cell img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .fallback-emoji {
+      font-size: 2.25rem;
+      line-height: 1;
+    }
+    .he { font-weight: 600; font-size: 1rem; grid-column: 2; }
+    .meta { font-size: 0.7rem; color: var(--muted); grid-column: 2; direction: ltr; text-align: right; font-family: ui-monospace, monospace; }
+    .toast {
+      position: fixed;
+      bottom: 1.25rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .toast.show { opacity: 1; }
+    footer { margin-top: 2rem; font-size: 0.75rem; color: var(--muted); max-width: 44rem; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <h1>מילים חדשות מוצעות (לא באפליקציה עדיין)</h1>
+  <p class="lead">
+    רשימת <strong>הצעות בלבד</strong> — כל מילה כאן <em>לא</em> מופיעה ב־<code>words.ts</code> (או הוסרה כי ה־label כבר קיים).
+    סמנו מה להוסיף, ואז <strong>העתק JSON</strong> או <strong>העתק שורות ל־words.ts</strong>.
+    תמונות: Noto Emoji (Apache-2.0). אחרי הוספה לפרויקט צריך גם ייבוא אייקון ב־Lucide ומפתח ב־<code>iconMapping</code> אם עוברים ל־Noto בקוד.
+  </p>
+  <p class="lead" style="margin-top:-0.5rem"><strong>75</strong> הצעות אחרי סינון מול הרשימה הקיימת.</p>
+  <div class="toolbar">
+    <button type="button" id="btnAll">סמן הכול</button>
+    <button type="button" id="btnNone">נקה הכול</button>
+    <button type="button" id="btnInvert">הפוך</button>
+    <button type="button" class="primary" id="btnCopy">העתק JSON (נבחרים)</button>
+    <button type="button" class="success" id="btnCopyTs">העתק שורות ל־words.ts</button>
+    <span class="count" id="count"></span>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="toast" id="toast">הועתק</div>
+  <footer>
+    עריכת ההצעות: <code>scripts/generate-noto-curator.mjs</code> → מערך <code>NEW_CANDIDATES</code>.
+    PNG חסר: יוצג אימוג׳י גיבוי. עדכנו את <code>cp</code> ב־<code>NEW_CANDIDATES</code> לפי הצורך.
+  </footer>
+  <script>
+    const ENRICHED = [
+  {
+    "word": "כריך",
+    "label": "Sandwich",
+    "lucide": "Sandwich",
+    "emoji": "🥪",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f96a.png",
+    "suffix": "1f96a"
+  },
+  {
+    "word": "קרואסון",
+    "label": "Croissant",
+    "lucide": "Croissant",
+    "emoji": "🥐",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f950.png",
+    "suffix": "1f950"
+  },
+  {
+    "word": "ממתק",
+    "label": "Candy",
+    "lucide": "Candy",
+    "emoji": "🍬",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f36c.png",
+    "suffix": "1f36c"
+  },
+  {
+    "word": "פופקורן",
+    "label": "Popcorn",
+    "lucide": "Popcorn",
+    "emoji": "🍿",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f37f.png",
+    "suffix": "1f37f"
+  },
+  {
+    "word": "דונאט",
+    "label": "Donut",
+    "lucide": "Donut",
+    "emoji": "🍩",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f369.png",
+    "suffix": "1f369"
+  },
+  {
+    "word": "סוכריה על מקל",
+    "label": "Lollipop",
+    "lucide": "Lollipop",
+    "emoji": "🍭",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f36d.png",
+    "suffix": "1f36d"
+  },
+  {
+    "word": "בירה",
+    "label": "Beer",
+    "lucide": "Beer",
+    "emoji": "🍺",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f37a.png",
+    "suffix": "1f37a"
+  },
+  {
+    "word": "סטייק",
+    "label": "Steak",
+    "lucide": "Beef",
+    "emoji": "🥩",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f969.png",
+    "suffix": "1f969"
+  },
+  {
+    "word": "גביע גלידה",
+    "label": "IceCreamBowl",
+    "lucide": "IceCreamBowl",
+    "emoji": "🍨",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f368.png",
+    "suffix": "1f368"
+  },
+  {
+    "word": "משקה מוגז",
+    "label": "Soda",
+    "lucide": "CupSoda",
+    "emoji": "🥤",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f964.png",
+    "suffix": "1f964"
+  },
+  {
+    "word": "חיטה",
+    "label": "Wheat",
+    "lucide": "Wheat",
+    "emoji": "🌾",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f33e.png",
+    "suffix": "1f33e"
+  },
+  {
+    "word": "שעועית",
+    "label": "Beans",
+    "lucide": "Bean",
+    "emoji": "🫘",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1fad8.png",
+    "suffix": "1fad8"
+  },
+  {
+    "word": "שולחן אוכל",
+    "label": "PlaceSetting",
+    "lucide": "Table",
+    "emoji": "🍽️",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f37d_fe0f.png",
+    "suffix": "1f37d_fe0f"
+  },
+  {
+    "word": "אסלה",
+    "label": "Toilet",
+    "lucide": "Toilet",
+    "emoji": "🚽",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f6bd.png",
+    "suffix": "1f6bd"
+  },
+  {
+    "word": "קונסולה",
+    "label": "VideoGame",
+    "lucide": "Gamepad2",
+    "emoji": "🎮",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f3ae.png",
+    "suffix": "1f3ae"
+  },
+  {
+    "word": "ג׳ויסטיק",
+    "label": "Joystick",
+    "lucide": "Joystick",
+    "emoji": "🕹️",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f579_fe0f.png",
+    "suffix": "1f579_fe0f"
+  },
+  {
+    "word": "רובוט",
+    "label": "Robot",
+    "lucide": "Bot",
+    "emoji": "🤖",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f916.png",
+    "suffix": "1f916"
+  },
+  {
+    "word": "מעגל חשמלי",
+    "label": "Circuit",
+    "lucide": "CircuitBoard",
+    "emoji": "🔌",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f50c.png",
+    "suffix": "1f50c"
+  },
+  {
+    "word": "מעבד",
+    "label": "CpuChip",
+    "lucide": "Cpu",
+    "emoji": "💻",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f4bb.png",
+    "suffix": "1f4bb"
+  },
+  {
+    "word": "בית ספר",
+    "label": "School",
+    "lucide": "School",
+    "emoji": "🏫",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f3eb.png",
+    "suffix": "1f3eb"
+  },
+  {
+    "word": "מורה",
+    "label": "Teacher",
+    "lucide": "GraduationCap",
+    "emoji": "🎓",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f393.png",
+    "suffix": "1f393"
+  },
+  {
+    "word": "כנסייה",
+    "label": "Church",
+    "lucide": "Church",
+    "emoji": "⛪️",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u26ea_fe0f.png",
+    "suffix": "26ea_fe0f"
+  },
+  {
+    "word": "בית חולים",
+    "label": "Hospital",
+    "lucide": "Hospital",
+    "emoji": "🏥",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f3e5.png",
+    "suffix": "1f3e5"
+  },
+  {
+    "word": "טירה",
+    "label": "Castle",
+    "lucide": "Castle",
+    "emoji": "🏰",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f3f0.png",
+    "suffix": "1f3f0"
+  },
+  {
+    "word": "בנק",
+    "label": "Bank",
+    "lucide": "Banknote",
+    "emoji": "🏦",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f3e6.png",
+    "suffix": "1f3e6"
+  },
+  {
+    "word": "חנות",
+    "label": "Store",
+    "lucide": "Building2",
+    "emoji": "🏪",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f3ea.png",
+    "suffix": "1f3ea"
+  },
+  {
+    "word": "מפעל",
+    "label": "Factory",
+    "lucide": "Factory",
+    "emoji": "🏭",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f3ed.png",
+    "suffix": "1f3ed"
+  },
+  {
+    "word": "מלון",
+    "label": "Hotel",
+    "lucide": "Hotel",
+    "emoji": "🏨",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f3e8.png",
+    "suffix": "1f3e8"
+  },
+  {
+    "word": "בניין משרדים",
+    "label": "Office",
+    "lucide": "Building2",
+    "emoji": "🏗️",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f3d7_fe0f.png",
+    "suffix": "1f3d7_fe0f"
+  },
+  {
+    "word": "אתר מפורסם",
+    "label": "Landmark",
+    "lucide": "Landmark",
+    "emoji": "🗽",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f5fd.png",
+    "suffix": "1f5fd"
+  },
+  {
+    "word": "מונית",
+    "label": "Taxi",
+    "lucide": "CarTaxiFront",
+    "emoji": "🚕",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f695.png",
+    "suffix": "1f695"
+  },
+  {
+    "word": "אמבולנס",
+    "label": "Ambulance",
+    "lucide": "Ambulance",
+    "emoji": "🚑",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f691.png",
+    "suffix": "1f691"
+  },
+  {
+    "word": "סירה",
+    "label": "Sailboat",
+    "lucide": "Sailboat",
+    "emoji": "⛵",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u26f5.png",
+    "suffix": "26f5"
+  },
+  {
+    "word": "אוניה",
+    "label": "Ship",
+    "lucide": "Ship",
+    "emoji": "🚢",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f6a2.png",
+    "suffix": "1f6a2"
+  },
+  {
+    "word": "טרקטור",
+    "label": "Tractor",
+    "lucide": "Tractor",
+    "emoji": "🚜",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f69c.png",
+    "suffix": "1f69c"
+  },
+  {
+    "word": "תחנת דלק",
+    "label": "GasPump",
+    "lucide": "Fuel",
+    "emoji": "⛽",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u26fd.png",
+    "suffix": "26fd"
+  },
+  {
+    "word": "פנדה",
+    "label": "Panda",
+    "lucide": "Panda",
+    "emoji": "🐼",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f43c.png",
+    "suffix": "1f43c"
+  },
+  {
+    "word": "סנאי",
+    "label": "Squirrel",
+    "lucide": "Squirrel",
+    "emoji": "🐿",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f43f.png",
+    "suffix": "1f43f"
+  },
+  {
+    "word": "חולדה",
+    "label": "Rat",
+    "lucide": "Rat",
+    "emoji": "🐀",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f400.png",
+    "suffix": "1f400"
+  },
+  {
+    "word": "שבלול",
+    "label": "Snail",
+    "lucide": "Snail",
+    "emoji": "🐌",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f40c.png",
+    "suffix": "1f40c"
+  },
+  {
+    "word": "שרימפס",
+    "label": "Shrimp",
+    "lucide": "Shrimp",
+    "emoji": "🦐",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f990.png",
+    "suffix": "1f990"
+  },
+  {
+    "word": "תולעת",
+    "label": "Worm",
+    "lucide": "Worm",
+    "emoji": "🪱",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1fab1.png",
+    "suffix": "1fab1"
+  },
+  {
+    "word": "דולפין",
+    "label": "Dolphin",
+    "lucide": "Fish",
+    "emoji": "🐬",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f42c.png",
+    "suffix": "1f42c"
+  },
+  {
+    "word": "תמנון",
+    "label": "Octopus",
+    "lucide": "Fish",
+    "emoji": "🐙",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f419.png",
+    "suffix": "1f419"
+  },
+  {
+    "word": "כריש",
+    "label": "Shark",
+    "lucide": "Fish",
+    "emoji": "🦈",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f988.png",
+    "suffix": "1f988"
+  },
+  {
+    "word": "לווייתן",
+    "label": "Whale",
+    "lucide": "Fish",
+    "emoji": "🐳",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f433.png",
+    "suffix": "1f433"
+  },
+  {
+    "word": "אורן",
+    "label": "Pine",
+    "lucide": "TreePine",
+    "emoji": "🌲",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f332.png",
+    "suffix": "1f332"
+  },
+  {
+    "word": "ורד",
+    "label": "Rose",
+    "lucide": "Rose",
+    "emoji": "🌹",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f339.png",
+    "suffix": "1f339"
+  },
+  {
+    "word": "היביסקוס",
+    "label": "Hibiscus",
+    "lucide": "Flower2",
+    "emoji": "🌺",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f33a.png",
+    "suffix": "1f33a"
+  },
+  {
+    "word": "כדורעף",
+    "label": "Volleyball",
+    "lucide": "Volleyball",
+    "emoji": "🏐",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f3d0.png",
+    "suffix": "1f3d0"
+  },
+  {
+    "word": "גלובוס",
+    "label": "Globe",
+    "lucide": "Globe",
+    "emoji": "🌍",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f30d.png",
+    "suffix": "1f30d"
+  },
+  {
+    "word": "לווין",
+    "label": "Satellite",
+    "lucide": "Satellite",
+    "emoji": "🛰️",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f6f0_fe0f.png",
+    "suffix": "1f6f0_fe0f"
+  },
+  {
+    "word": "אגוז",
+    "label": "Nut",
+    "lucide": "Nut",
+    "emoji": "🌰",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f330.png",
+    "suffix": "1f330"
+  },
+  {
+    "word": "כובע מגן",
+    "label": "HardHat",
+    "lucide": "HardHat",
+    "emoji": "🎩",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f3a9.png",
+    "suffix": "1f3a9"
+  },
+  {
+    "word": "מדליה",
+    "label": "Medal",
+    "lucide": "Medal",
+    "emoji": "🏅",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f3c5.png",
+    "suffix": "1f3c5"
+  },
+  {
+    "word": "אבן חן",
+    "label": "Gemstone",
+    "lucide": "Gem",
+    "emoji": "💎",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f48e.png",
+    "suffix": "1f48e"
+  },
+  {
+    "word": "טבעת",
+    "label": "Ring",
+    "lucide": "Circle",
+    "emoji": "💍",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f48d.png",
+    "suffix": "1f48d"
+  },
+  {
+    "word": "ארנק",
+    "label": "Wallet",
+    "lucide": "Wallet",
+    "emoji": "👛",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f45b.png",
+    "suffix": "1f45b"
+  },
+  {
+    "word": "כרטיס אשראי",
+    "label": "CreditCard",
+    "lucide": "CreditCard",
+    "emoji": "💳",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f4b3.png",
+    "suffix": "1f4b3"
+  },
+  {
+    "word": "מזוודה",
+    "label": "Luggage",
+    "lucide": "Luggage",
+    "emoji": "🧳",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f9f3.png",
+    "suffix": "1f9f3"
+  },
+  {
+    "word": "תיק מסמכים",
+    "label": "Briefcase",
+    "lucide": "Briefcase",
+    "emoji": "💼",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f4bc.png",
+    "suffix": "1f4bc"
+  },
+  {
+    "word": "לוח שנה",
+    "label": "Calendar",
+    "lucide": "Calendar",
+    "emoji": "📆",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f4c6.png",
+    "suffix": "1f4c6"
+  },
+  {
+    "word": "שעון חול",
+    "label": "Hourglass",
+    "lucide": "Hourglass",
+    "emoji": "⌛️",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u231b_fe0f.png",
+    "suffix": "231b_fe0f"
+  },
+  {
+    "word": "פנס",
+    "label": "Flashlight",
+    "lucide": "Flashlight",
+    "emoji": "🔦",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f526.png",
+    "suffix": "1f526"
+  },
+  {
+    "word": "אמבטיה",
+    "label": "Bathtub",
+    "lucide": "Bath",
+    "emoji": "🛁",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f6c1.png",
+    "suffix": "1f6c1"
+  },
+  {
+    "word": "תינוק",
+    "label": "Baby",
+    "lucide": "Baby",
+    "emoji": "👶",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f476.png",
+    "suffix": "1f476"
+  },
+  {
+    "word": "גולגולת",
+    "label": "Skull",
+    "lucide": "Skull",
+    "emoji": "💀",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f480.png",
+    "suffix": "1f480"
+  },
+  {
+    "word": "מוח",
+    "label": "Brain",
+    "lucide": "Brain",
+    "emoji": "🧠",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f9e0.png",
+    "suffix": "1f9e0"
+  },
+  {
+    "word": "מזרק",
+    "label": "Syringe",
+    "lucide": "Syringe",
+    "emoji": "💉",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f489.png",
+    "suffix": "1f489"
+  },
+  {
+    "word": "DNA",
+    "label": "Dna",
+    "lucide": "Dna",
+    "emoji": "🧬",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f9ec.png",
+    "suffix": "1f9ec"
+  },
+  {
+    "word": "קרדום",
+    "label": "Pickaxe",
+    "lucide": "Pickaxe",
+    "emoji": "⛏️",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u26cf_fe0f.png",
+    "suffix": "26cf_fe0f"
+  },
+  {
+    "word": "מטף כיבוי",
+    "label": "FireExtinguisher",
+    "lucide": "FireExtinguisher",
+    "emoji": "🧯",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f9ef.png",
+    "suffix": "1f9ef"
+  },
+  {
+    "word": "איש שלג",
+    "label": "Snowman",
+    "lucide": "CloudSnow",
+    "emoji": "⛄️",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u26c4_fe0f.png",
+    "suffix": "26c4_fe0f"
+  },
+  {
+    "word": "סימניה",
+    "label": "Bookmark",
+    "lucide": "Bookmark",
+    "emoji": "🔖",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f516.png",
+    "suffix": "1f516"
+  },
+  {
+    "word": "לוח גזירים",
+    "label": "Clipboard",
+    "lucide": "Clipboard",
+    "emoji": "📋",
+    "notoUrl": "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/128/emoji_u1f4cb.png",
+    "suffix": "1f4cb"
+  }
+];
+    const STORAGE_KEY = 'noto_new_curator_v2';
+
+    const grid = document.getElementById('grid');
+    const countEl = document.getElementById('count');
+    const toast = document.getElementById('toast');
+
+    let saved = {};
+    try {
+      saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    } catch (e) {}
+
+    function showToast() {
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 1600);
+    }
+
+    function getChecks() {
+      return [...grid.querySelectorAll('input[type="checkbox"]')];
+    }
+
+    function updateCount() {
+      const boxes = getChecks();
+      const n = boxes.filter((b) => b.checked).length;
+      countEl.textContent = n + ' / ' + boxes.length + ' נבחרו';
+    }
+
+    function persist() {
+      const state = {};
+      getChecks().forEach((cb) => { state[cb.dataset.label] = cb.checked; });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    ENRICHED.forEach((row, i) => {
+      const card = document.createElement('label');
+      card.className = 'card';
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.dataset.label = row.label;
+      cb.dataset.index = String(i);
+      cb.checked = saved[row.label] !== undefined ? saved[row.label] : true;
+      cb.addEventListener('change', () => { persist(); updateCount(); });
+
+      const imgCell = document.createElement('div');
+      imgCell.className = 'img-cell';
+      const img = document.createElement('img');
+      img.src = row.notoUrl;
+      img.alt = row.label;
+      img.loading = 'lazy';
+      img.referrerPolicy = 'no-referrer';
+      img.onerror = function () {
+        this.style.display = 'none';
+        const fb = document.createElement('span');
+        fb.className = 'fallback-emoji';
+        fb.textContent = row.emoji;
+        fb.title = 'PNG חסר';
+        imgCell.appendChild(fb);
+      };
+      imgCell.appendChild(img);
+
+      const he = document.createElement('div');
+      he.className = 'he';
+      he.textContent = row.word;
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.textContent = row.lucide + ' · ' + row.label + ' · u' + row.suffix;
+
+      card.append(cb, imgCell, he, meta);
+      grid.appendChild(card);
+    });
+
+    updateCount();
+
+    document.getElementById('btnAll').onclick = () => {
+      getChecks().forEach((b) => { b.checked = true; });
+      persist(); updateCount();
+    };
+    document.getElementById('btnNone').onclick = () => {
+      getChecks().forEach((b) => { b.checked = false; });
+      persist(); updateCount();
+    };
+    document.getElementById('btnInvert').onclick = () => {
+      getChecks().forEach((b) => { b.checked = !b.checked; });
+      persist(); updateCount();
+    };
+
+    document.getElementById('btnCopy').onclick = async () => {
+      const picked = ENRICHED.filter((row, i) => getChecks()[i].checked).map((row) => ({
+        word: row.word,
+        label: row.label,
+        lucide: row.lucide,
+      }));
+      await navigator.clipboard.writeText(JSON.stringify(picked, null, 2));
+      showToast();
+    };
+
+    document.getElementById('btnCopyTs').onclick = async () => {
+      const lines = ENRICHED.filter((row, i) => getChecks()[i].checked).map(
+        (row) =>
+          '  { word: ' +
+          JSON.stringify(row.word) +
+          ', icon: ' +
+          row.lucide +
+          ', label: ' +
+          JSON.stringify(row.label) +
+          ", imageUrl: 'https://loremflickr.com/200/200/placeholder/all' },"
+      );
+      await navigator.clipboard.writeText(lines.join(String.fromCharCode(10)));
+      showToast();
+    };
+  </script>
+</body>
+</html>
