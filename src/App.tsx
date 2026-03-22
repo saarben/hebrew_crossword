@@ -36,50 +36,58 @@ export default function App() {
   const [gridSize, setGridSize] = useState(10);
   const [isPrinting, setIsPrinting] = useState(false);
   const [isGeneratingIcons, setIsGeneratingIcons] = useState(false);
+  const [bootError, setBootError] = useState<string | null>(null);
 
   const inputRefs = useRef<(HTMLInputElement | null)[][]>([]);
 
   const createNewPuzzle = useCallback(async () => {
-    // Select random words
-    const shuffled = [...WORD_LIST].sort(() => 0.5 - Math.random());
-    const selected = shuffled.slice(0, 15); // Try to place up to 15 words
-    const data = generateCrossword(selected, gridSize);
-    setCrossword(data);
-    
-    // Initialize user grid
-    const emptyGrid = Array(data.size).fill('').map(() => Array(data.size).fill(''));
-    setUserGrid(emptyGrid);
-    setIsComplete(false);
-    setShowSolution(false);
+    try {
+      setBootError(null);
+      // Select random words
+      const shuffled = [...WORD_LIST].sort(() => 0.5 - Math.random());
+      const selected = shuffled.slice(0, 15); // Try to place up to 15 words
+      const data = generateCrossword(selected, gridSize);
+      setCrossword(data);
 
-    // Initialize refs
-    inputRefs.current = Array(data.size).fill(null).map(() => Array(data.size).fill(null));
+      // Initialize user grid
+      const emptyGrid = Array(data.size).fill('').map(() => Array(data.size).fill(''));
+      setUserGrid(emptyGrid);
+      setIsComplete(false);
+      setShowSolution(false);
 
-    // Trigger icon generation
-    setIsGeneratingIcons(true);
-    const updatedGrid = data.grid.map(row => row.map(cell => cell ? { ...cell } : null));
-    
-    // Use local storage to cache icons
-    const getCachedIcon = (label: string) => {
-      try {
-        return localStorage.getItem(`icon_cache_${label}`);
-      } catch (e) {
-        return null;
-      }
-    };
+      // Initialize refs
+      inputRefs.current = Array(data.size).fill(null).map(() => Array(data.size).fill(null));
 
-    for (let y = 0; y < data.size; y++) {
-      for (let x = 0; x < data.size; x++) {
-        const cell = updatedGrid[y][x];
-        if (cell?.isClue && cell.clueLabel) {
-          const cached = getCachedIcon(cell.clueLabel);
-          cell.clueImageUrl = cached || generateIcon(cell.clueLabel, cell.clueLabel);
+      // Trigger icon generation
+      setIsGeneratingIcons(true);
+      const updatedGrid = data.grid.map(row => row.map(cell => cell ? { ...cell } : null));
+
+      // Use local storage to cache icons
+      const getCachedIcon = (label: string) => {
+        try {
+          return localStorage.getItem(`icon_cache_${label}`);
+        } catch (e) {
+          return null;
+        }
+      };
+
+      for (let y = 0; y < data.size; y++) {
+        for (let x = 0; x < data.size; x++) {
+          const cell = updatedGrid[y][x];
+          if (cell?.isClue && cell.clueLabel) {
+            const cached = getCachedIcon(cell.clueLabel);
+            cell.clueImageUrl = cached || generateIcon(cell.clueLabel, cell.clueLabel);
+          }
         }
       }
-    }
 
-    setCrossword({ ...data, grid: updatedGrid.map(r => r.map(c => c ? { ...c } : null)) });
-    setIsGeneratingIcons(false);
+      setCrossword({ ...data, grid: updatedGrid.map(r => r.map(c => c ? { ...c } : null)) });
+      setIsGeneratingIcons(false);
+    } catch (e) {
+      console.error(e);
+      setBootError(e instanceof Error ? e.message : String(e));
+      setIsGeneratingIcons(false);
+    }
   }, [gridSize]);
 
   useEffect(() => {
@@ -163,7 +171,21 @@ export default function App() {
 
   const isIframe = typeof window !== 'undefined' && window.self !== window.top;
 
-  if (!crossword) return null;
+  if (bootError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-[#FDFCFB] text-red-800" dir="rtl">
+        <p className="text-center max-w-md">שגיאה בטעינת התשבץ: {bootError}</p>
+      </div>
+    );
+  }
+
+  if (!crossword) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-[#FDFCFB] text-stone-600" dir="rtl">
+        <p>טוען…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FDFCFB] text-[#2D3436] font-sans selection:bg-emerald-100" dir="rtl">

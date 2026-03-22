@@ -3,8 +3,10 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig} from 'vite';
 
-export default defineConfig(({mode}) => {
+// Project Pages URL: https://<user>.github.io/hebrew_crossword/ — assets must load under /hebrew_crossword/
+export default defineConfig(({command}) => {
   return {
+    base: command === 'serve' ? '/' : '/hebrew_crossword/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
