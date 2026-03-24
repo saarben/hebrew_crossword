@@ -131,7 +131,7 @@ export default function App() {
       setBootError(e instanceof Error ? e.message : String(e));
       setIsGeneratingIcons(false);
     }
-  }, [gridSize]);
+  }, [gridSize, isGerman]);
 
   useEffect(() => {
     createNewPuzzle();
