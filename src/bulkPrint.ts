@@ -46,12 +46,14 @@ function cellToHtml(cell: GridCell | null, showSolution: boolean): string {
   if (cell.isClue) {
     const src = cell.clueImageUrl ? escapeHtml(cell.clueImageUrl) : '';
     const dir = cell.clueDirection === 'H' ? 'cw-clue-h' : 'cw-clue-v';
-    const arrow = cell.clueDirection === 'H' ? '←' : '↓';
+    const arrowSvg = cell.clueDirection === 'H'
+      ? `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>`
+      : `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>`;
     return `<div class="cw-cell cw-clue ${dir}">
       <div class="cw-clue-img-wrap">
         ${src ? `<img class="cw-clue-img" src="${src}" alt="" crossorigin="anonymous" />` : ''}
       </div>
-      <span class="cw-arrow" aria-hidden="true">${arrow}</span>
+      <div class="cw-arrow" aria-hidden="true">${arrowSvg}</div>
     </div>`;
   }
   const letter = showSolution && cell.char ? escapeHtml(cell.char) : '';
@@ -179,12 +181,13 @@ export function buildBulkPrintDocument(
       font-weight: 700;
     }
     .cw-clue {
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .cw-clue-h { flex-direction: row; }
-    .cw-clue-v { flex-direction: column-reverse; }
+    .cw-clue-h { }
+    .cw-clue-v { }
     .cw-clue-img-wrap {
       width: calc(var(--cw-cell) * 0.85);
       height: calc(var(--cw-cell) * 0.85);
@@ -200,13 +203,28 @@ export function buildBulkPrintDocument(
       display: block;
     }
     .cw-arrow {
-      font-size: 10pt;
-      font-weight: 800;
-      color: #0d5c42;
+      position: absolute;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      border-radius: 9999px;
+      border: 1px solid #333;
+      padding: 2px;
+      color: #333;
       line-height: 1;
     }
-    .cw-clue-h .cw-arrow { margin-inline-end: 2px; order: -1; }
-    .cw-clue-v .cw-arrow { margin-block-end: 2px; }
+    .cw-clue-h .cw-arrow {
+      left: -5px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .cw-clue-v .cw-arrow {
+      bottom: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
     @media print {
       .no-print { display: none !important; }
     }
