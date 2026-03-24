@@ -5,18 +5,20 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Printer, 
-  RotateCcw, 
-  CheckCircle2, 
-  Trophy, 
-  Download, 
+import {
+  Printer,
+  RotateCcw,
+  CheckCircle2,
+  Trophy,
+  Download,
   ArrowLeft,
   ArrowDown,
   RefreshCw,
   Info,
   ExternalLink,
-  FileStack
+  FileStack,
+  Grid3X3,
+  PenLine
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { clsx, type ClassValue } from 'clsx';
@@ -31,12 +33,16 @@ import {
   createRandomPuzzle,
   writeBulkPrintWindow,
 } from './bulkPrint';
+import SudokuGame from './SudokuGame';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+type AppTab = 'crossword' | 'sudoku';
+
 export default function App() {
+  const [activeTab, setActiveTab] = useState<AppTab>('crossword');
   const [crossword, setCrossword] = useState<CrosswordData | null>(null);
   const [userGrid, setUserGrid] = useState<string[][]>([]);
   const [isComplete, setIsComplete] = useState(false);
@@ -254,46 +260,76 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
-            <a
-              href={window.location.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-full text-sm font-semibold transition-all active:scale-95"
-            >
-              <ExternalLink className="w-4 h-4" />
-              <span>פתח בלשונית חדשה</span>
-            </a>
-            <button
-              onClick={() => {
-                const emptyGrid = Array(crossword.size).fill('').map(() => Array(crossword.size).fill(''));
-                setUserGrid(emptyGrid);
-                setIsComplete(false);
-              }}
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-full text-sm font-semibold transition-all active:scale-95"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span className="hidden sm:inline">איפוס</span>
-            </button>
-            <button
-              onClick={createNewPuzzle}
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-full text-sm font-semibold transition-all active:scale-95"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span className="hidden sm:inline">חדש</span>
-            </button>
-            <button
-              onClick={handlePrint}
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-sm font-semibold shadow-lg shadow-emerald-100 transition-all active:scale-95"
-            >
-              <Printer className="w-4 h-4" />
-              <span className="hidden sm:inline">הדפסה</span>
-            </button>
+            {/* Tab switcher */}
+            <div className="flex bg-stone-100 rounded-full p-0.5">
+              <button
+                onClick={() => setActiveTab('crossword')}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-semibold transition-all",
+                  activeTab === 'crossword' ? "bg-white shadow-sm text-stone-800" : "text-stone-500 hover:text-stone-700"
+                )}
+              >
+                <PenLine className="w-4 h-4" />
+                <span className="hidden sm:inline">תשחץ</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('sudoku')}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-semibold transition-all",
+                  activeTab === 'sudoku' ? "bg-white shadow-sm text-stone-800" : "text-stone-500 hover:text-stone-700"
+                )}
+              >
+                <Grid3X3 className="w-4 h-4" />
+                <span className="hidden sm:inline">סודוקו</span>
+              </button>
+            </div>
+            {activeTab === 'crossword' && (
+              <>
+                <a
+                  href={window.location.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-full text-sm font-semibold transition-all active:scale-95"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>פתח בלשונית חדשה</span>
+                </a>
+                <button
+                  onClick={() => {
+                    const emptyGrid = Array(crossword.size).fill('').map(() => Array(crossword.size).fill(''));
+                    setUserGrid(emptyGrid);
+                    setIsComplete(false);
+                  }}
+                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-full text-sm font-semibold transition-all active:scale-95"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span className="hidden sm:inline">איפוס</span>
+                </button>
+                <button
+                  onClick={createNewPuzzle}
+                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-full text-sm font-semibold transition-all active:scale-95"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span className="hidden sm:inline">חדש</span>
+                </button>
+                <button
+                  onClick={handlePrint}
+                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-sm font-semibold shadow-lg shadow-emerald-100 transition-all active:scale-95"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span className="hidden sm:inline">הדפסה</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="pt-20 sm:pt-32 pb-20 px-3 sm:px-6 max-w-5xl mx-auto">
+        {activeTab === 'sudoku' ? (
+          <SudokuGame />
+        ) : (
         <div className="flex flex-col lg:flex-row gap-12 items-start justify-center">
           
           {/* Crossword Grid */}
@@ -485,6 +521,7 @@ export default function App() {
             </div>
           </div>
         </div>
+        )}
       </main>
 
       {/* Footer */}
