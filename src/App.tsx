@@ -19,7 +19,8 @@ import {
   FileStack,
   Grid3X3,
   PenLine,
-  LayoutGrid
+  LayoutGrid,
+  Calculator
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { clsx, type ClassValue } from 'clsx';
@@ -37,12 +38,13 @@ import {
 import SudokuGame from './SudokuGame';
 import MemoryGame from './MemoryGame';
 import BingoGame from './BingoGame';
+import MathBalanceGame from './MathBalanceGame';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-type AppTab = 'crossword' | 'sudoku' | 'memory' | 'bingo';
+type AppTab = 'crossword' | 'sudoku' | 'memory' | 'bingo' | 'balance';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('crossword');
@@ -249,9 +251,9 @@ export default function App() {
               <RefreshCw className="w-4 h-4 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h1 className="text-lg sm:text-xl font-bold tracking-tight">תשחצון</h1>
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight">משחקי למידה לכיתה א'</h1>
               <div className="flex items-center gap-2">
-                <p className="text-xs text-stone-500 font-medium hidden sm:block">תשחצים לכיתה א׳</p>
+                <p className="text-xs text-stone-500 font-medium hidden sm:block">לומדים בכיף</p>
                 {isGeneratingIcons && (
                   <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 rounded-full border border-emerald-100 animate-pulse">
                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" />
@@ -305,6 +307,16 @@ export default function App() {
                 <Grid3X3 className="w-4 h-4" />
                 <span className="inline">בינגו</span>
               </button>
+              <button
+                onClick={() => setActiveTab('balance')}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-semibold transition-all",
+                  activeTab === 'balance' ? "bg-white shadow-sm text-stone-800" : "text-stone-500 hover:text-stone-700"
+                )}
+              >
+                <Calculator className="w-4 h-4" />
+                <span className="inline">מאזניים</span>
+              </button>
             </div>
             {activeTab === 'crossword' && (
               <>
@@ -356,6 +368,8 @@ export default function App() {
           <MemoryGame />
         ) : activeTab === 'bingo' ? (
           <BingoGame />
+        ) : activeTab === 'balance' ? (
+          <MathBalanceGame />
         ) : (
           <div className="flex flex-col lg:flex-row gap-12 items-start justify-center">
 
@@ -553,7 +567,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="py-10 text-center text-stone-400 text-xs print:hidden">
-        <p>© {new Date().getFullYear()} תשחצון - לומדים עברית בכיף</p>
+        <p>© {new Date().getFullYear()} משחקי למידה לכיתה א' - לומדים בכיף</p>
       </footer>
 
       {/* Print Styles */}

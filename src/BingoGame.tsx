@@ -74,9 +74,8 @@ export default function BingoGame() {
         }
     };
 
-    if (boardCards.length === 0 || targetWords.length === 0) return null;
-
-    const currentWord = currentIndex < targetWords.length ? targetWords[currentIndex].word : '';
+    const currentWordInfo = currentIndex < targetWords.length ? targetWords[currentIndex] : null;
+    const currentWordDisplay = currentWordInfo ? (currentWordInfo.wordWithNiqqud || currentWordInfo.word) : '';
 
     return (
         <div className="flex flex-col items-center gap-6 w-full max-w-lg mx-auto px-3 pb-12" dir="rtl">
@@ -127,7 +126,7 @@ export default function BingoGame() {
                 <AnimatePresence mode="wait">
                     {!isComplete ? (
                         <motion.div
-                            key={currentWord}
+                            key={currentWordDisplay}
                             initial={{ opacity: 0, scale: 0.5, y: -20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 1.5, y: 20 }}
@@ -135,7 +134,7 @@ export default function BingoGame() {
                             className="bg-white px-8 py-4 rounded-3xl shadow-lg border-2 border-emerald-100"
                         >
                             <span className="text-4xl sm:text-6xl font-black text-stone-800 tracking-tight">
-                                {currentWord}
+                                {currentWordDisplay}
                             </span>
                         </motion.div>
                     ) : (

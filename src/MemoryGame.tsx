@@ -215,7 +215,7 @@ export default function MemoryGame() {
                                         />
                                     ) : (
                                         <span className="text-lg sm:text-3xl font-bold text-stone-800 text-center leading-tight">
-                                            {card.word.word}
+                                            {card.word.wordWithNiqqud || card.word.word}
                                         </span>
                                     )}
                                 </div>

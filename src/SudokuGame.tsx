@@ -39,6 +39,8 @@ export default function SudokuGame() {
   const gridRef = useRef<HTMLDivElement>(null);
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
   const dragIconRef = useRef<number | null>(null);
+  const dragSourceRef = useRef<{ r: number; c: number } | null>(null);
+  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
 
   const newGame = useCallback((size: number = blockSize) => {
     const total = size * size;
@@ -150,16 +152,29 @@ export default function SudokuGame() {
   // Touch drag handlers
   const handleTouchStart = useCallback((e: React.TouchEvent, iconIdx: number) => {
     if (isComplete) return;
-    e.preventDefault();
+    if (e.cancelable) e.preventDefault();
     const touch = e.touches[0];
+    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
     dragIconRef.current = iconIdx;
+    dragSourceRef.current = null;
+    setDragIcon(iconIdx);
+    setDragPos({ x: touch.clientX, y: touch.clientY });
+  }, [isComplete]);
+
+  const handleGridTouchStart = useCallback((e: React.TouchEvent, r: number, c: number, iconIdx: number) => {
+    if (isComplete) return;
+    if (e.cancelable) e.preventDefault();
+    const touch = e.touches[0];
+    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
+    dragIconRef.current = iconIdx;
+    dragSourceRef.current = { r, c };
     setDragIcon(iconIdx);
     setDragPos({ x: touch.clientX, y: touch.clientY });
   }, [isComplete]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (dragIconRef.current === null) return;
-    e.preventDefault();
+    if (e.cancelable) e.preventDefault();
     const touch = e.touches[0];
     setDragPos({ x: touch.clientX, y: touch.clientY });
   }, []);
@@ -168,14 +183,40 @@ export default function SudokuGame() {
     if (dragIconRef.current === null || !gridRef.current) {
       setDragPos(null);
       dragIconRef.current = null;
+      dragSourceRef.current = null;
+      touchStartPosRef.current = null;
       return;
     }
 
     const touch = e.changedTouches[0];
+    
+    // Check if it was a tap
+    const isTap = touchStartPosRef.current && 
+      Math.abs(touch.clientX - touchStartPosRef.current.x) < 10 &&
+      Math.abs(touch.clientY - touchStartPosRef.current.y) < 10;
+
+    if (isTap) {
+      if (dragSourceRef.current) {
+        // Tapped a grid cell
+        const { r, c } = dragSourceRef.current;
+        handleCellTap(r, c);
+      } else {
+        // Tapped a tray icon
+        handleTrayTap(dragIconRef.current);
+      }
+      
+      setDragPos(null);
+      dragIconRef.current = null;
+      dragSourceRef.current = null;
+      touchStartPosRef.current = null;
+      return;
+    }
+
     // Find which grid cell is under the touch point
     const gridEl = gridRef.current;
     const cells = gridEl.querySelectorAll('[data-cell]');
     let placed = false;
+    let targetCell: {row: number, col: number} | null = null;
 
     cells.forEach(cell => {
       const rect = cell.getBoundingClientRect();
@@ -187,19 +228,43 @@ export default function SudokuGame() {
       ) {
         const row = parseInt(cell.getAttribute('data-row') || '0');
         const col = parseInt(cell.getAttribute('data-col') || '0');
-        if (puzzle && puzzle.puzzle[row][col] === -1) {
+        targetCell = { row, col };
+      }
+    });
+
+    if (targetCell) {
+      const { row, col } = targetCell;
+      if (puzzle && puzzle.puzzle[row][col] === -1) {
+        if (dragSourceRef.current) {
+          const { r: srcR, c: srcC } = dragSourceRef.current;
+          if (srcR !== row || srcC !== col) {
+            setGrid(prev => {
+              const newGrid = prev.map(r => [...r]);
+              newGrid[srcR][srcC] = -1;
+              newGrid[row][col] = dragIconRef.current!;
+              setTimeout(() => checkSolution(newGrid), 0);
+              return newGrid;
+            });
+            placed = true;
+          }
+        } else {
           placeIcon(row, col, dragIconRef.current!);
           placed = true;
         }
       }
-    });
+    } else if (dragSourceRef.current && !isTap) {
+      // Dropped outside grid: clear the cell
+      clearCell(dragSourceRef.current.r, dragSourceRef.current.c);
+    }
 
     if (!placed) {
       setDragIcon(null);
     }
     setDragPos(null);
     dragIconRef.current = null;
-  }, [puzzle, placeIcon]);
+    dragSourceRef.current = null;
+    touchStartPosRef.current = null;
+  }, [puzzle, placeIcon, checkSolution, handleCellTap, handleTrayTap, clearCell]);
 
   // HTML5 drag handlers for desktop
   const handleDragStart = useCallback((e: React.DragEvent, iconIdx: number) => {
@@ -386,8 +451,24 @@ export default function SudokuGame() {
                       handleGridDragEnd(e, r, c);
                     }
                   }}
+                  onTouchStart={(e) => {
+                    if (!isGiven && cell >= 0) {
+                      handleGridTouchStart(e, r, c, cell);
+                    }
+                  }}
+                  onTouchMove={(e) => {
+                    if (!isGiven && cell >= 0) {
+                      handleTouchMove(e);
+                    }
+                  }}
+                  onTouchEnd={(e) => {
+                    if (!isGiven && cell >= 0) {
+                      handleTouchEnd(e);
+                    }
+                  }}
                   className={cn(
                     "relative flex items-center justify-center transition-all duration-200 cursor-pointer overflow-hidden",
+                    (!isGiven && cell >= 0) && "touch-none",
                     boxColors[boxIdx],
                     // Borders for grid lines
                     c < totalSize - 1 && "border-l border-stone-200/50",
