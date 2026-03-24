@@ -34,8 +34,8 @@ export default function MemoryGame() {
         const uniqueWords = Array.from(new Map(WORD_LIST.map(w => [w.word, w])).values());
         const availableWords = uniqueWords.filter(w => !!getFluentEmojiUrl(w.label));
 
-        // Pick 8 random words for a 4x4 grid
-        const shuffledWords = [...availableWords].sort(() => Math.random() - 0.5).slice(0, 8);
+        // Pick 12 random words for 24 cards
+        const shuffledWords = [...availableWords].sort(() => Math.random() - 0.5).slice(0, 12);
 
         // Create 2 cards per word
         const gameCards: MemoryCard[] = [];
@@ -59,8 +59,8 @@ export default function MemoryGame() {
     }, [newGame]);
 
     useEffect(() => {
-        // 8 word pairs = 16 cards total
-        if (cards.length > 0 && matchedWords.size === 8 && !isComplete) {
+        // 12 word pairs = 24 cards total
+        if (cards.length > 0 && matchedWords.size === 12 && !isComplete) {
             setIsComplete(true);
             confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
         }
@@ -104,7 +104,7 @@ export default function MemoryGame() {
     if (cards.length === 0) return null;
 
     return (
-        <div className="flex flex-col items-center gap-6 w-full max-w-2xl mx-auto px-3 pb-12" dir="rtl">
+        <div className="flex flex-col items-center gap-4 w-full h-[calc(100dvh-12rem)] sm:h-[calc(100dvh-16rem)] max-w-5xl mx-auto px-1 sm:px-3 pb-2" dir="rtl">
             {/* Header buttons */}
             <div className="flex items-center gap-3 w-full justify-center">
                 <button
@@ -163,7 +163,7 @@ export default function MemoryGame() {
             </AnimatePresence>
 
             {/* Grid */}
-            <div className="grid grid-cols-4 gap-2 sm:gap-4 w-full" style={{ perspective: '1000px' }}>
+            <div className="grid grid-cols-4 sm:grid-cols-6 grid-rows-6 sm:grid-rows-4 gap-2 sm:gap-3 w-full flex-1 min-h-0" style={{ perspective: '1000px' }}>
                 {cards.map((card, idx) => {
                     const isFlipped = flippedIndices.includes(idx);
                     const isMatched = matchedWords.has(card.word.word);
@@ -173,7 +173,7 @@ export default function MemoryGame() {
                         <div
                             key={card.id}
                             onClick={() => handleCardClick(idx)}
-                            className="relative aspect-[3/4] sm:aspect-square group cursor-pointer"
+                            className="relative w-full h-full group cursor-pointer"
                         >
                             <motion.div
                                 className="w-full h-full relative"
@@ -214,7 +214,7 @@ export default function MemoryGame() {
                                             referrerPolicy="no-referrer"
                                         />
                                     ) : (
-                                        <span className="text-xl sm:text-4xl font-bold text-stone-800 text-center leading-tight">
+                                        <span className="text-lg sm:text-3xl font-bold text-stone-800 text-center leading-tight">
                                             {card.word.word}
                                         </span>
                                     )}

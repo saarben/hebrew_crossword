@@ -36,12 +36,13 @@ import {
 } from './bulkPrint';
 import SudokuGame from './SudokuGame';
 import MemoryGame from './MemoryGame';
+import BingoGame from './BingoGame';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-type AppTab = 'crossword' | 'sudoku' | 'memory';
+type AppTab = 'crossword' | 'sudoku' | 'memory' | 'bingo';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('crossword');
@@ -294,6 +295,16 @@ export default function App() {
                 <LayoutGrid className="w-4 h-4" />
                 <span className="inline">זיכרון</span>
               </button>
+              <button
+                onClick={() => setActiveTab('bingo')}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-semibold transition-all",
+                  activeTab === 'bingo' ? "bg-white shadow-sm text-stone-800" : "text-stone-500 hover:text-stone-700"
+                )}
+              >
+                <Grid3X3 className="w-4 h-4" />
+                <span className="inline">בינגו</span>
+              </button>
             </div>
             {activeTab === 'crossword' && (
               <>
@@ -343,6 +354,8 @@ export default function App() {
           <SudokuGame />
         ) : activeTab === 'memory' ? (
           <MemoryGame />
+        ) : activeTab === 'bingo' ? (
+          <BingoGame />
         ) : (
           <div className="flex flex-col lg:flex-row gap-12 items-start justify-center">
 
