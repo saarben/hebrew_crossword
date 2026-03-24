@@ -28,8 +28,6 @@ import { twMerge } from 'tailwind-merge';
 import { WORD_LIST } from './words';
 import { GERMAN_WORD_LIST } from './wordsGerman';
 
-const isGerman = typeof window !== 'undefined' && (window.location.pathname.includes('/german') || window.location.hash.includes('/german'));
-
 import { generateCrossword, CrosswordData, GridCell } from './crosswordGenerator';
 import { generateIcon } from './services/imageService';
 import {
@@ -63,6 +61,24 @@ export default function App() {
   const [bulkCount, setBulkCount] = useState(BULK_PRINT_DEFAULT_COUNT);
   const [bulkIncludeSolutions, setBulkIncludeSolutions] = useState(false);
   const [bulkError, setBulkError] = useState<string | null>(null);
+
+  const [isGermanState, setIsGermanState] = useState(false);
+
+  useEffect(() => {
+    const checkGerman = () => {
+      const german = window.location.pathname.includes('/german') || window.location.hash.includes('/german');
+      setIsGermanState(german);
+      document.title = german ? "Lernspiele für 1. Klasse" : "משחקי למידה לכיתה א'";
+      document.documentElement.lang = german ? "de" : "he";
+      document.documentElement.dir = german ? "ltr" : "rtl";
+    };
+
+    checkGerman();
+    window.addEventListener('hashchange', checkGerman);
+    return () => window.removeEventListener('hashchange', checkGerman);
+  }, []);
+
+  const isGerman = isGermanState;
 
   const inputRefs = useRef<(HTMLInputElement | null)[][]>([]);
 
@@ -371,13 +387,13 @@ export default function App() {
       {/* Main Content */}
       <main className="pt-20 sm:pt-32 pb-20 px-3 sm:px-6 max-w-5xl mx-auto">
         {activeTab === 'sudoku' ? (
-          <SudokuGame />
+          <SudokuGame isGerman={isGerman} />
         ) : activeTab === 'memory' ? (
-          <MemoryGame />
+          <MemoryGame isGerman={isGerman} />
         ) : activeTab === 'bingo' ? (
-          <BingoGame />
+          <BingoGame isGerman={isGerman} />
         ) : activeTab === 'balance' ? (
-          <MathBalanceGame />
+          <MathBalanceGame isGerman={isGerman} />
         ) : (
           <div className="flex flex-col lg:flex-row gap-12 items-start justify-center">
 

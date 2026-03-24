@@ -7,8 +7,6 @@ import { twMerge } from 'tailwind-merge';
 import { WORD_LIST, WordInfo } from './words';
 import { GERMAN_WORD_LIST } from './wordsGerman';
 
-const isGerman = typeof window !== 'undefined' && (window.location.pathname.includes('/german') || window.location.hash.includes('/german'));
-const activeWordList = isGerman ? GERMAN_WORD_LIST : WORD_LIST;
 import { generateIcon } from './services/imageService';
 import { getFluentEmojiUrl } from './constants/iconMapping';
 
@@ -24,7 +22,8 @@ interface MemoryCard {
     type: CardType;
 }
 
-export default function MemoryGame() {
+export default function MemoryGame({ isGerman }: { isGerman: boolean }) {
+    const activeWordList = isGerman ? GERMAN_WORD_LIST : WORD_LIST;
     const [cards, setCards] = useState<MemoryCard[]>([]);
     const [flippedIndices, setFlippedIndices] = useState<number[]>([]);
     const [matchedWords, setMatchedWords] = useState<Set<string>>(new Set());

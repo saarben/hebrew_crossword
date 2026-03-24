@@ -5,9 +5,6 @@ import confetti from 'canvas-confetti';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-const isGerman = typeof window !== 'undefined' && (window.location.pathname.includes('/german') || window.location.hash.includes('/german'));
-
-
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -51,7 +48,7 @@ function generateLevel(): Level {
   };
 }
 
-export default function MathBalanceGame() {
+export default function MathBalanceGame({ isGerman }: { isGerman: boolean }) {
   const [level, setLevel] = useState<Level | null>(null);
   const [selectedWeight, setSelectedWeight] = useState<number | null>(null);
   const [isComplete, setIsComplete] = useState(false);

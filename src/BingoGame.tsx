@@ -7,8 +7,6 @@ import { twMerge } from 'tailwind-merge';
 import { WORD_LIST, WordInfo } from './words';
 import { GERMAN_WORD_LIST } from './wordsGerman';
 
-const isGerman = typeof window !== 'undefined' && (window.location.pathname.includes('/german') || window.location.hash.includes('/german'));
-const activeWordList = isGerman ? GERMAN_WORD_LIST : WORD_LIST;
 import { generateIcon } from './services/imageService';
 import { getFluentEmojiUrl } from './constants/iconMapping';
 
@@ -16,7 +14,8 @@ function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
-export default function BingoGame() {
+export default function BingoGame({ isGerman }: { isGerman: boolean }) {
+    const activeWordList = isGerman ? GERMAN_WORD_LIST : WORD_LIST;
     const [boardCards, setBoardCards] = useState<WordInfo[]>([]);
     const [targetWords, setTargetWords] = useState<WordInfo[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);

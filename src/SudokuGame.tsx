@@ -9,15 +9,13 @@ import { generateIcon } from './services/imageService';
 import { WORD_LIST } from './words';
 import { GERMAN_WORD_LIST } from './wordsGerman';
 
-const isGerman = typeof window !== 'undefined' && (window.location.pathname.includes('/german') || window.location.hash.includes('/german'));
-const activeWordList = isGerman ? GERMAN_WORD_LIST : WORD_LIST;
-
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 /** Pick N random icons from the word list */
-function pickIcons(count: number): { label: string; url: string }[] {
+function pickIcons(count: number, isGerman: boolean): { label: string; url: string }[] {
+  const activeWordList = isGerman ? GERMAN_WORD_LIST : WORD_LIST;
   const shuffled = [...activeWordList].sort(() => Math.random() - 0.5);
   const picked = shuffled.slice(0, count);
   return picked.map(w => ({
@@ -26,7 +24,7 @@ function pickIcons(count: number): { label: string; url: string }[] {
   }));
 }
 
-export default function SudokuGame() {
+export default function SudokuGame({ isGerman }: { isGerman: boolean }) {
   const [blockSize, setBlockSize] = useState(2);
   const [icons, setIcons] = useState<{ label: string; url: string }[]>([]);
   const [puzzle, setPuzzle] = useState<SudokuPuzzle | null>(null);
@@ -48,7 +46,7 @@ export default function SudokuGame() {
 
   const newGame = useCallback((size: number = blockSize) => {
     const total = size * size;
-    const newIcons = pickIcons(total);
+    const newIcons = pickIcons(total, isGerman);
     const newPuzzle = generateSudoku(size, 'easy');
     setIcons(newIcons);
     setPuzzle(newPuzzle);
