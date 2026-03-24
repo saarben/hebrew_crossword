@@ -234,15 +234,15 @@ export default function App() {
     <div className="min-h-screen bg-[#FDFCFB] text-[#2D3436] font-sans selection:bg-emerald-100" dir="rtl">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-stone-200 z-50 print:hidden">
-        <div className="max-w-5xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-200">
-              <RefreshCw className="w-6 h-6" />
+        <div className="max-w-5xl mx-auto px-3 sm:px-6 py-2 sm:h-20 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-200">
+              <RefreshCw className="w-4 h-4 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">תשחצון</h1>
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight">תשחצון</h1>
               <div className="flex items-center gap-2">
-                <p className="text-xs text-stone-500 font-medium">תשחצים לכיתה א׳</p>
+                <p className="text-xs text-stone-500 font-medium hidden sm:block">תשחצים לכיתה א׳</p>
                 {isGeneratingIcons && (
                   <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 rounded-full border border-emerald-100 animate-pulse">
                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" />
@@ -253,56 +253,55 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <a 
-              href={window.location.href} 
-              target="_blank" 
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <a
+              href={window.location.href}
+              target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-full text-sm font-semibold transition-all active:scale-95"
+              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-full text-sm font-semibold transition-all active:scale-95"
             >
               <ExternalLink className="w-4 h-4" />
               <span>פתח בלשונית חדשה</span>
             </a>
-            <button 
+            <button
               onClick={() => {
                 const emptyGrid = Array(crossword.size).fill('').map(() => Array(crossword.size).fill(''));
                 setUserGrid(emptyGrid);
                 setIsComplete(false);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-full text-sm font-semibold transition-all active:scale-95"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-full text-sm font-semibold transition-all active:scale-95"
             >
               <RotateCcw className="w-4 h-4" />
-              <span>איפוס</span>
+              <span className="hidden sm:inline">איפוס</span>
             </button>
-            <button 
+            <button
               onClick={createNewPuzzle}
-              className="flex items-center gap-2 px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-full text-sm font-semibold transition-all active:scale-95"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-full text-sm font-semibold transition-all active:scale-95"
             >
               <RefreshCw className="w-4 h-4" />
-              <span>חדש</span>
+              <span className="hidden sm:inline">חדש</span>
             </button>
-            <button 
+            <button
               onClick={handlePrint}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-sm font-semibold shadow-lg shadow-emerald-100 transition-all active:scale-95"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-sm font-semibold shadow-lg shadow-emerald-100 transition-all active:scale-95"
             >
               <Printer className="w-4 h-4" />
-              <span>הדפסה</span>
+              <span className="hidden sm:inline">הדפסה</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="pt-32 pb-20 px-6 max-w-5xl mx-auto">
+      <main className="pt-20 sm:pt-32 pb-20 px-3 sm:px-6 max-w-5xl mx-auto">
         <div className="flex flex-col lg:flex-row gap-12 items-start justify-center">
           
           {/* Crossword Grid */}
-          <div className="relative p-8 bg-white rounded-[2rem] shadow-2xl shadow-stone-200/50 border border-stone-100 print:shadow-none print:p-0 print:border-none">
-            <div 
-              className="grid gap-1" 
-              style={{ 
+          <div className="relative p-3 sm:p-8 bg-white rounded-[2rem] shadow-2xl shadow-stone-200/50 border border-stone-100 print:shadow-none print:p-0 print:border-none w-full sm:w-auto">
+            <div
+              className="grid gap-0.5 sm:gap-1 w-full"
+              style={{
                 gridTemplateColumns: `repeat(${crossword.size}, minmax(0, 1fr))`,
-                width: 'fit-content'
               }}
             >
               {crossword.grid.map((row, y) => (
@@ -310,7 +309,7 @@ export default function App() {
                   <div 
                     key={`${y}-${x}`}
                     className={cn(
-                      "relative w-10 h-10 sm:w-14 sm:h-14 flex items-center justify-center rounded-lg transition-all duration-300",
+                      "relative aspect-square sm:w-14 sm:h-14 flex items-center justify-center rounded-lg transition-all duration-300",
                       cell ? (cell.isClue ? "bg-white border-none shadow-sm" : "bg-stone-50 border-2 border-stone-200") : "bg-transparent",
                       cell?.isWordStart && "ring-2 ring-emerald-100"
                     )}
@@ -336,13 +335,13 @@ export default function App() {
                             </div>
                             {/* Arrow outside the icon container for better visibility and print support */}
                             <div className={cn(
-                              "absolute z-20 flex items-center justify-center bg-white rounded-full shadow-md border border-emerald-200 p-1 print:border-stone-300 print:shadow-none",
-                              cell.clueDirection === 'H' ? "-left-3 top-1/2 -translate-y-1/2" : "-bottom-3 left-1/2 -translate-x-1/2"
+                              "absolute z-20 flex items-center justify-center bg-white rounded-full shadow-md border border-emerald-200 p-0.5 sm:p-1 print:border-stone-300 print:shadow-none",
+                              cell.clueDirection === 'H' ? "-left-2 sm:-left-3 top-1/2 -translate-y-1/2" : "-bottom-2 sm:-bottom-3 left-1/2 -translate-x-1/2"
                             )}>
                               {cell.clueDirection === 'H' ? (
-                                <ArrowLeft className="w-4 h-4 text-emerald-600 print:text-stone-800" />
+                                <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-600 print:text-stone-800" />
                               ) : (
-                                <ArrowDown className="w-4 h-4 text-emerald-600 print:text-stone-800" />
+                                <ArrowDown className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-600 print:text-stone-800" />
                               )}
                             </div>
                           </div>
@@ -358,7 +357,7 @@ export default function App() {
                             onChange={(e) => handleInputChange(y, x, e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, y, x)}
                             className={cn(
-                              "w-full h-full text-center text-xl sm:text-2xl font-bold bg-transparent outline-none transition-colors",
+                              "w-full h-full text-center text-base sm:text-2xl font-bold bg-transparent outline-none transition-colors",
                               isComplete ? "text-emerald-600" : "text-stone-800",
                               showSolution && "text-blue-600"
                             )}
