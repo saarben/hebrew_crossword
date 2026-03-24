@@ -198,13 +198,48 @@ export default function SudokuGame() {
     setDragIcon(iconIdx);
   }, []);
 
+  const handleGridDragStart = useCallback((e: React.DragEvent, r: number, c: number, iconIdx: number) => {
+    e.dataTransfer.setData('text/plain', JSON.stringify({ source: 'grid', r, c, iconIdx }));
+    setDragIcon(iconIdx);
+  }, []);
+
+  const handleGridDragEnd = useCallback((e: React.DragEvent, r: number, c: number) => {
+    if (e.dataTransfer.dropEffect === 'none') {
+      clearCell(r, c);
+    }
+    setDragIcon(null);
+  }, [clearCell]);
+
   const handleDrop = useCallback((e: React.DragEvent, row: number, col: number) => {
     e.preventDefault();
-    const iconIdx = parseInt(e.dataTransfer.getData('text/plain'));
+    const data = e.dataTransfer.getData('text/plain');
+    if (!data) return;
+
+    try {
+      if (data.startsWith('{')) {
+        const parsed = JSON.parse(data);
+        if (parsed.source === 'grid') {
+          if (parsed.r === row && parsed.c === col) return;
+
+          setGrid(prev => {
+            const newGrid = prev.map(r => [...r]);
+            newGrid[parsed.r][parsed.c] = -1;
+            newGrid[row][col] = parsed.iconIdx;
+            setTimeout(() => checkSolution(newGrid), 0);
+            return newGrid;
+          });
+          return;
+        }
+      }
+    } catch {
+      // Ignore JSON parse errors
+    }
+
+    const iconIdx = parseInt(data);
     if (!isNaN(iconIdx)) {
       placeIcon(row, col, iconIdx);
     }
-  }, [placeIcon]);
+  }, [placeIcon, checkSolution]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -303,6 +338,17 @@ export default function SudokuGame() {
                   onClick={() => handleCellTap(r, c)}
                   onDrop={(e) => handleDrop(e, r, c)}
                   onDragOver={handleDragOver}
+                  draggable={!isGiven && cell >= 0}
+                  onDragStart={(e) => {
+                    if (!isGiven && cell >= 0) {
+                      handleGridDragStart(e, r, c, cell);
+                    }
+                  }}
+                  onDragEnd={(e) => {
+                    if (!isGiven && cell >= 0) {
+                      handleGridDragEnd(e, r, c);
+                    }
+                  }}
                   className={cn(
                     "relative aspect-square w-[72px] h-[72px] sm:w-[80px] sm:h-[80px] flex items-center justify-center transition-all duration-200 cursor-pointer",
                     boxColors[boxIdx],
