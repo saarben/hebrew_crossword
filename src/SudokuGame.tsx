@@ -307,10 +307,10 @@ export default function SudokuGame() {
                     "relative aspect-square w-[72px] h-[72px] sm:w-[80px] sm:h-[80px] flex items-center justify-center transition-all duration-200 cursor-pointer",
                     boxColors[boxIdx],
                     // Borders for grid lines
-                    c < 3 && "border-r border-stone-200",
+                    c < 3 && "border-l border-stone-200",
                     r < 3 && "border-b border-stone-200",
                     // Thicker lines for 2x2 box boundaries
-                    c === 1 && "border-r-[3px] border-r-stone-400",
+                    c === 1 && "border-l-[3px] border-l-stone-400",
                     r === 1 && "border-b-[3px] border-b-stone-400",
                     // Selection highlight
                     isSelected && "ring-4 ring-emerald-400 ring-inset z-10",
