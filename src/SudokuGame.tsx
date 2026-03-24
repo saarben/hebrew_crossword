@@ -12,10 +12,10 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-/** Pick 4 random icons from the word list */
-function pickIcons(): { label: string; url: string }[] {
+/** Pick N random icons from the word list */
+function pickIcons(count: number): { label: string; url: string }[] {
   const shuffled = [...WORD_LIST].sort(() => Math.random() - 0.5);
-  const picked = shuffled.slice(0, 4);
+  const picked = shuffled.slice(0, count);
   return picked.map(w => ({
     label: w.label,
     url: generateIcon(w.label, w.label),
@@ -23,6 +23,7 @@ function pickIcons(): { label: string; url: string }[] {
 }
 
 export default function SudokuGame() {
+  const [blockSize, setBlockSize] = useState(2);
   const [icons, setIcons] = useState<{ label: string; url: string }[]>([]);
   const [puzzle, setPuzzle] = useState<SudokuPuzzle | null>(null);
   const [grid, setGrid] = useState<number[][]>([]);
@@ -32,14 +33,17 @@ export default function SudokuGame() {
   const [dragIcon, setDragIcon] = useState<number | null>(null);
   const [showHelp, setShowHelp] = useState(false);
 
+  const totalSize = blockSize * blockSize;
+
   // For touch drag
   const gridRef = useRef<HTMLDivElement>(null);
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
   const dragIconRef = useRef<number | null>(null);
 
-  const newGame = useCallback(() => {
-    const newIcons = pickIcons();
-    const newPuzzle = generateSudoku('easy');
+  const newGame = useCallback((size: number = blockSize) => {
+    const total = size * size;
+    const newIcons = pickIcons(total);
+    const newPuzzle = generateSudoku(size, 'easy');
     setIcons(newIcons);
     setPuzzle(newPuzzle);
     setGrid(newPuzzle.puzzle.map(row => [...row]));
@@ -47,7 +51,12 @@ export default function SudokuGame() {
     setIsWrong(false);
     setSelectedCell(null);
     setDragIcon(null);
-  }, []);
+  }, [blockSize]);
+
+  const changeSize = (newBlockSize: number) => {
+    setBlockSize(newBlockSize);
+    newGame(newBlockSize);
+  };
 
   useEffect(() => {
     newGame();
@@ -247,14 +256,14 @@ export default function SudokuGame() {
 
   // Count how many of each icon are still needed
   const getIconCounts = useCallback(() => {
-    if (!puzzle) return [0, 0, 0, 0];
-    const placed = [0, 0, 0, 0];
+    if (!puzzle) return [];
+    const placed = new Array(totalSize).fill(0);
     grid.forEach(row => row.forEach(cell => {
       if (cell >= 0) placed[cell]++;
     }));
-    // Each icon appears exactly 4 times in a 4x4 sudoku
-    return placed.map(p => 4 - p);
-  }, [puzzle, grid]);
+    // Each icon appears exactly totalSize times
+    return placed.map(p => totalSize - p);
+  }, [puzzle, grid, totalSize]);
 
   if (!puzzle || icons.length === 0) {
     return (
@@ -269,24 +278,43 @@ export default function SudokuGame() {
   return (
     <div className="flex flex-col items-center gap-6 w-full max-w-md mx-auto px-3" dir="rtl">
       {/* Header buttons */}
-      <div className="flex items-center gap-3 w-full justify-center">
-        <button
-          onClick={newGame}
-          className="flex items-center gap-2 px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-full text-sm font-semibold transition-all active:scale-95"
-        >
-          <RefreshCw className="w-4 h-4" />
-          <span>משחק חדש</span>
-        </button>
-        <button
-          onClick={() => setShowHelp(!showHelp)}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all active:scale-95",
-            showHelp ? "bg-emerald-100 text-emerald-700" : "bg-stone-100 hover:bg-stone-200"
-          )}
-        >
-          <HelpCircle className="w-4 h-4" />
-          <span>עזרה</span>
-        </button>
+      <div className="flex flex-col items-center gap-4 w-full">
+        <div className="flex items-center gap-2 bg-stone-100 p-1 rounded-2xl">
+          {[2, 3, 4].map((size) => (
+            <button
+              key={size}
+              onClick={() => changeSize(size)}
+              className={cn(
+                "px-4 py-2 rounded-xl text-sm font-bold transition-all",
+                blockSize === size
+                  ? "bg-white text-emerald-600 shadow-sm"
+                  : "text-stone-500 hover:text-stone-700 hover:bg-stone-200/50"
+              )}
+            >
+              {size}×{size}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-3 w-full justify-center">
+          <button
+            onClick={() => newGame()}
+            className="flex items-center gap-2 px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-full text-sm font-semibold transition-all active:scale-95"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>משחק חדש</span>
+          </button>
+          <button
+            onClick={() => setShowHelp(!showHelp)}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all active:scale-95",
+              showHelp ? "bg-emerald-100 text-emerald-700" : "bg-stone-100 hover:bg-stone-200"
+            )}
+          >
+            <HelpCircle className="w-4 h-4" />
+            <span>עזרה</span>
+          </button>
+        </div>
       </div>
 
       {/* Help section */}
@@ -301,9 +329,9 @@ export default function SudokuGame() {
             <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-sm text-stone-600 space-y-2">
               <p className="font-bold text-emerald-700">איך משחקים סודוקו?</p>
               <ul className="space-y-1.5 list-disc list-inside">
-                <li>כל שורה צריכה להכיל את כל 4 הציורים, בלי חזרות</li>
-                <li>כל עמודה צריכה להכיל את כל 4 הציורים, בלי חזרות</li>
-                <li>כל ריבוע צבעוני (2×2) צריך להכיל את כל 4 הציורים</li>
+                <li>כל שורה צריכה להכיל את כל {totalSize} הציורים, בלי חזרות</li>
+                <li>כל עמודה צריכה להכיל את כל {totalSize} הציורים, בלי חזרות</li>
+                <li>כל ריבוע צבעוני ({blockSize}×{blockSize}) צריך להכיל את כל הציורים</li>
                 <li>גררו ציור מהמגש למשבצת ריקה, או לחצו על משבצת ואז על ציור</li>
                 <li>לחצו על ציור שכבר במשבצת כדי להסיר אותו</li>
               </ul>
@@ -315,18 +343,27 @@ export default function SudokuGame() {
       {/* Grid */}
       <div
         ref={gridRef}
-        className="relative bg-white rounded-2xl shadow-xl shadow-stone-200/50 border border-stone-100 p-2 sm:p-3"
+        className="relative bg-white rounded-2xl shadow-xl shadow-stone-200/50 border border-stone-100 p-1.5 sm:p-2 w-full aspect-square"
       >
-        <div className="grid grid-cols-4 gap-0">
+        <div
+          className="grid gap-0 w-full h-full"
+          style={{
+            gridTemplateColumns: `repeat(${totalSize}, minmax(0, 1fr))`,
+            gridTemplateRows: `repeat(${totalSize}, minmax(0, 1fr))`
+          }}
+        >
           {grid.map((row, r) =>
             row.map((cell, c) => {
               const isGiven = puzzle.puzzle[r][c] !== -1;
               const isSelected = selectedCell?.[0] === r && selectedCell?.[1] === c;
-              // 2x2 box coloring
-              const boxIdx = Math.floor(r / 2) * 2 + Math.floor(c / 2);
+
+              // Dynamic box coloring
+              const boxR = Math.floor(r / blockSize);
+              const boxC = Math.floor(c / blockSize);
+              const boxIdx = (boxR * blockSize + boxC) % 8; // Cyclic through colors
               const boxColors = [
-                'bg-amber-50', 'bg-sky-50',
-                'bg-emerald-50', 'bg-purple-50',
+                'bg-amber-50', 'bg-sky-50', 'bg-emerald-50', 'bg-purple-50',
+                'bg-rose-50', 'bg-indigo-50', 'bg-orange-50', 'bg-cyan-50'
               ];
 
               return (
@@ -350,19 +387,17 @@ export default function SudokuGame() {
                     }
                   }}
                   className={cn(
-                    "relative aspect-square w-[72px] h-[72px] sm:w-[80px] sm:h-[80px] flex items-center justify-center transition-all duration-200 cursor-pointer",
+                    "relative flex items-center justify-center transition-all duration-200 cursor-pointer overflow-hidden",
                     boxColors[boxIdx],
                     // Borders for grid lines
-                    c < 3 && "border-l border-stone-200",
-                    r < 3 && "border-b border-stone-200",
-                    // Thicker lines for 2x2 box boundaries
-                    c === 1 && "border-l-[3px] border-l-stone-400",
-                    r === 1 && "border-b-[3px] border-b-stone-400",
+                    c < totalSize - 1 && "border-l border-stone-200/50",
+                    r < totalSize - 1 && "border-b border-stone-200/50",
+                    // Thicker lines for block boundaries
+                    (c + 1) % blockSize === 0 && c < totalSize - 1 && "border-l-[2px] border-l-stone-300",
+                    (r + 1) % blockSize === 0 && r < totalSize - 1 && "border-b-[2px] border-b-stone-300",
                     // Selection highlight
-                    isSelected && "ring-4 ring-emerald-400 ring-inset z-10",
-                    // Given cells have a subtle indicator
-                    isGiven && "opacity-100",
-                    !isGiven && cell === -1 && "hover:bg-emerald-100/50",
+                    isSelected && "ring-2 ring-emerald-400 ring-inset z-10",
+                    !isGiven && cell === -1 && "hover:bg-emerald-100/30",
                   )}
                 >
                   {cell >= 0 && icons[cell] && (
@@ -373,14 +408,16 @@ export default function SudokuGame() {
                       alt={icons[cell].label}
                       referrerPolicy="no-referrer"
                       className={cn(
-                        "w-12 h-12 sm:w-14 sm:h-14 object-contain pointer-events-none select-none",
-                        isGiven && "drop-shadow-md",
+                        "object-contain pointer-events-none select-none",
+                        blockSize === 2 ? "w-[75%] h-[75%]" :
+                          blockSize === 3 ? "w-[85%] h-[85%]" : "w-[90%] h-[90%]",
+                        isGiven && "drop-shadow-sm brightness-90",
                       )}
                       draggable={false}
                     />
                   )}
                   {isGiven && cell >= 0 && (
-                    <div className="absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full bg-stone-300" />
+                    <div className="absolute top-0.5 right-0.5 w-1 h-1 rounded-full bg-stone-300" />
                   )}
                 </div>
               );
@@ -418,12 +455,12 @@ export default function SudokuGame() {
       {/* Icon tray */}
       <div className="w-full bg-white rounded-2xl shadow-lg shadow-stone-200/50 border border-stone-100 p-4">
         <p className="text-xs text-stone-400 font-semibold mb-3 text-center">גררו ציור למשבצת ריקה</p>
-        <div className="flex justify-center gap-3 sm:gap-4 flex-wrap">
+        <div className="flex justify-center gap-2 sm:gap-3 flex-wrap">
           {icons.map((icon, idx) => {
             const remaining = iconCounts[idx];
             const isSelectedIcon = dragIcon === idx;
             return (
-              <div key={idx} className="flex flex-col items-center gap-1.5">
+              <div key={idx} className="flex flex-col items-center gap-1">
                 <div
                   draggable={remaining > 0 && !isComplete}
                   onDragStart={(e) => handleDragStart(e, idx)}
@@ -432,10 +469,11 @@ export default function SudokuGame() {
                   onTouchEnd={handleTouchEnd}
                   onClick={() => handleTrayTap(idx)}
                   className={cn(
-                    "w-16 h-16 sm:w-18 sm:h-18 rounded-xl flex items-center justify-center transition-all duration-200 touch-none",
+                    "rounded-xl flex items-center justify-center transition-all duration-200 touch-none",
+                    blockSize === 2 ? "w-14 h-14" : "w-11 h-11",
                     remaining > 0 && !isComplete
-                      ? "bg-stone-50 border-2 border-stone-200 hover:border-emerald-300 hover:shadow-md cursor-grab active:cursor-grabbing active:scale-105"
-                      : "bg-stone-100 border-2 border-stone-100 opacity-30 cursor-not-allowed",
+                      ? "bg-stone-50 border border-stone-200 hover:border-emerald-300 hover:shadow-md cursor-grab active:cursor-grabbing active:scale-105"
+                      : "bg-stone-100 border border-stone-100 opacity-30 cursor-not-allowed",
                     isSelectedIcon && remaining > 0 && "border-emerald-400 bg-emerald-50 shadow-md ring-2 ring-emerald-200",
                   )}
                 >
@@ -443,7 +481,7 @@ export default function SudokuGame() {
                     src={icon.url}
                     alt={icon.label}
                     referrerPolicy="no-referrer"
-                    className="w-10 h-10 sm:w-12 sm:h-12 object-contain pointer-events-none select-none"
+                    className="w-[80%] h-[80%] object-contain pointer-events-none select-none"
                     draggable={false}
                   />
                 </div>
@@ -451,12 +489,11 @@ export default function SudokuGame() {
                   "flex gap-0.5",
                   remaining === 0 && "opacity-30"
                 )}>
-                  {Array.from({ length: remaining }).map((_, i) => (
-                    <div key={i} className="w-2 h-2 rounded-full bg-emerald-400" />
+                  {Array.from({ length: Math.min(remaining, 5) }).map((_, i) => (
+                    <div key={i} className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                   ))}
-                  {Array.from({ length: 4 - remaining }).map((_, i) => (
-                    <div key={i} className="w-2 h-2 rounded-full bg-stone-200" />
-                  ))}
+                  {remaining > 5 && <span className="text-[10px] text-emerald-500 font-bold">+{remaining - 5}</span>}
+                  {remaining === 0 && <div className="w-1.5 h-1.5 rounded-full bg-stone-200" />}
                 </div>
               </div>
             );

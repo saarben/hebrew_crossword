@@ -18,7 +18,8 @@ import {
   ExternalLink,
   FileStack,
   Grid3X3,
-  PenLine
+  PenLine,
+  LayoutGrid
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { clsx, type ClassValue } from 'clsx';
@@ -34,12 +35,13 @@ import {
   writeBulkPrintWindow,
 } from './bulkPrint';
 import SudokuGame from './SudokuGame';
+import MemoryGame from './MemoryGame';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-type AppTab = 'crossword' | 'sudoku';
+type AppTab = 'crossword' | 'sudoku' | 'memory';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('crossword');
@@ -166,7 +168,7 @@ export default function App() {
       // This is a bit complex because we don't know which word the user is currently typing
       // For simplicity, we just allow manual navigation or standard backspace
     }
-    
+
     if (e.key === 'ArrowRight' && x > 0) inputRefs.current[y][x - 1]?.focus();
     if (e.key === 'ArrowLeft' && x < gridSize - 1) inputRefs.current[y][x + 1]?.focus();
     if (e.key === 'ArrowDown' && y < gridSize - 1) inputRefs.current[y + 1][x]?.focus();
@@ -270,7 +272,7 @@ export default function App() {
                 )}
               >
                 <PenLine className="w-4 h-4" />
-                <span className="hidden sm:inline">תשחץ</span>
+                <span className="inline">תשחץ</span>
               </button>
               <button
                 onClick={() => setActiveTab('sudoku')}
@@ -280,7 +282,17 @@ export default function App() {
                 )}
               >
                 <Grid3X3 className="w-4 h-4" />
-                <span className="hidden sm:inline">סודוקו</span>
+                <span className="inline">סודוקו</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('memory')}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-semibold transition-all",
+                  activeTab === 'memory' ? "bg-white shadow-sm text-stone-800" : "text-stone-500 hover:text-stone-700"
+                )}
+              >
+                <LayoutGrid className="w-4 h-4" />
+                <span className="inline">זיכרון</span>
               </button>
             </div>
             {activeTab === 'crossword' && (
@@ -329,198 +341,200 @@ export default function App() {
       <main className="pt-20 sm:pt-32 pb-20 px-3 sm:px-6 max-w-5xl mx-auto">
         {activeTab === 'sudoku' ? (
           <SudokuGame />
+        ) : activeTab === 'memory' ? (
+          <MemoryGame />
         ) : (
-        <div className="flex flex-col lg:flex-row gap-12 items-start justify-center">
-          
-          {/* Crossword Grid */}
-          <div className="relative p-3 sm:p-8 bg-white rounded-[2rem] shadow-2xl shadow-stone-200/50 border border-stone-100 print:shadow-none print:p-0 print:border-none w-full sm:w-auto">
-            <div
-              className="grid gap-0.5 sm:gap-1 w-full"
-              style={{
-                gridTemplateColumns: `repeat(${crossword.size}, minmax(0, 1fr))`,
-              }}
-            >
-              {crossword.grid.map((row, y) => (
-                row.map((cell, x) => (
-                  <div 
-                    key={`${y}-${x}`}
-                    className={cn(
-                      "relative aspect-square sm:w-14 sm:h-14 flex items-center justify-center rounded-lg transition-all duration-300",
-                      cell ? (cell.isClue ? "bg-white border-none shadow-sm" : "bg-stone-50 border-2 border-stone-200") : "bg-transparent",
-                      cell?.isWordStart && "ring-2 ring-emerald-100"
-                    )}
-                  >
-                    {cell ? (
-                      <>
-                        {/* Clue Cell Content */}
-                        {cell.isClue && (
-                          <div className="relative w-full h-full p-1">
-                            <div className="w-full h-full bg-white rounded-lg shadow-md border border-emerald-100 overflow-hidden relative group">
-                              {cell.clueImageUrl ? (
-                                <img 
-                                  src={cell.clueImageUrl} 
-                                  alt={cell.clueLabel}
-                                  className="w-full h-full object-cover rounded-md group-hover:scale-110 transition-transform"
-                                  referrerPolicy="no-referrer"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-stone-50 animate-pulse">
-                                  <RefreshCw className="w-4 h-4 text-emerald-300 animate-spin" />
-                                </div>
-                              )}
-                            </div>
-                            {/* Arrow outside the icon container for better visibility and print support */}
-                            <div className={cn(
-                              "absolute z-20 flex items-center justify-center bg-white rounded-full shadow-md border border-emerald-200 p-0.5 sm:p-1 print:border-stone-300 print:shadow-none",
-                              cell.clueDirection === 'H' ? "-left-2 sm:-left-3 top-1/2 -translate-y-1/2" : "-bottom-2 sm:-bottom-3 left-1/2 -translate-x-1/2"
-                            )}>
-                              {cell.clueDirection === 'H' ? (
-                                <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-600 print:text-stone-800" />
-                              ) : (
-                                <ArrowDown className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-600 print:text-stone-800" />
-                              )}
-                            </div>
-                          </div>
-                        )}
+          <div className="flex flex-col lg:flex-row gap-12 items-start justify-center">
 
-                        {/* Input (only for non-clue cells) */}
-                        {!cell.isClue && (
-                          <input
-                            ref={el => inputRefs.current[y][x] = el}
-                            type="text"
-                            maxLength={1}
-                            value={showSolution ? (cell.char || '') : userGrid[y][x]}
-                            onChange={(e) => handleInputChange(y, x, e.target.value)}
-                            onKeyDown={(e) => handleKeyDown(e, y, x)}
-                            className={cn(
-                              "w-full h-full text-center text-base sm:text-2xl font-bold bg-transparent outline-none transition-colors",
-                              isComplete ? "text-emerald-600" : "text-stone-800",
-                              showSolution && "text-blue-600"
-                            )}
-                            disabled={isComplete || showSolution}
-                          />
-                        )}
-                      </>
-                    ) : null}
-                  </div>
-                ))
-              ))}
-            </div>
-
-            {/* Success Message */}
-            <AnimatePresence>
-              {isComplete && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  className="absolute -bottom-12 left-0 right-0 flex justify-center print:hidden"
-                >
-                  <div className="bg-emerald-500 text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-3">
-                    <Trophy className="w-5 h-5" />
-                    <span className="font-bold">כל הכבוד! פתרת את התשחץ!</span>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Sidebar / Instructions */}
-          <div className="flex-1 space-y-8 print:hidden">
-            <section className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
-              <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                <Info className="w-5 h-5 text-emerald-500" />
-                איך משחקים?
-              </h2>
-              <ul className="space-y-4 text-sm text-stone-600">
-                <li className="flex gap-3">
-                  <div className="w-6 h-6 rounded-full bg-emerald-50 flex-shrink-0 flex items-center justify-center text-emerald-600 font-bold text-xs">1</div>
-                  <p>הסתכלו על הציורים שמעל המשבצות.</p>
-                </li>
-                <li className="flex gap-3">
-                  <div className="w-6 h-6 rounded-full bg-emerald-50 flex-shrink-0 flex items-center justify-center text-emerald-600 font-bold text-xs">2</div>
-                  <p>כתבו את האותיות של המילה לפי כיוון החץ.</p>
-                </li>
-                <li className="flex gap-3">
-                  <div className="w-6 h-6 rounded-full bg-emerald-50 flex-shrink-0 flex items-center justify-center text-emerald-600 font-bold text-xs">3</div>
-                  <p>אפשר להשתמש בחיצים במקלדת כדי לעבור בין משבצות.</p>
-                </li>
-              </ul>
-            </section>
-
-            {/* Print Tip for Iframe */}
-            {isIframe && (
-              <section className="bg-amber-50 p-6 rounded-3xl border border-amber-100 shadow-sm">
-                <h2 className="text-lg font-bold mb-3 flex items-center gap-2 text-amber-700">
-                  <Printer className="w-5 h-5" />
-                  טיפ להדפסה
-                </h2>
-                <p className="text-sm text-amber-800 leading-relaxed">
-                  אם כפתור ההדפסה לא נפתח, לחצו על הכפתור <strong>"פתח בלשונית חדשה"</strong> למעלה ואז נסו להדפיס שוב מהלשונית החדשה.
-                </p>
-              </section>
-            )}
-
-            <div className="flex flex-col gap-3">
-              <button 
-                onClick={() => setShowSolution(!showSolution)}
-                className="w-full py-4 rounded-2xl border-2 border-stone-200 font-bold text-stone-500 hover:bg-stone-50 transition-all active:scale-[0.98]"
+            {/* Crossword Grid */}
+            <div className="relative p-3 sm:p-8 bg-white rounded-[2rem] shadow-2xl shadow-stone-200/50 border border-stone-100 print:shadow-none print:p-0 print:border-none w-full sm:w-auto">
+              <div
+                className="grid gap-0.5 sm:gap-1 w-full"
+                style={{
+                  gridTemplateColumns: `repeat(${crossword.size}, minmax(0, 1fr))`,
+                }}
               >
-                {showSolution ? 'הסתר פתרון' : 'הצג פתרון'}
-              </button>
-              
-              <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 text-amber-800 text-xs flex gap-3">
-                <Download className="w-5 h-5 flex-shrink-0" />
-                <p>טיפ: לחצו על כפתור ההדפסה כדי לקבל דף עבודה מוכן למדפסת!</p>
+                {crossword.grid.map((row, y) => (
+                  row.map((cell, x) => (
+                    <div
+                      key={`${y}-${x}`}
+                      className={cn(
+                        "relative aspect-square sm:w-14 sm:h-14 flex items-center justify-center rounded-lg transition-all duration-300",
+                        cell ? (cell.isClue ? "bg-white border-none shadow-sm" : "bg-stone-50 border-2 border-stone-200") : "bg-transparent",
+                        cell?.isWordStart && "ring-2 ring-emerald-100"
+                      )}
+                    >
+                      {cell ? (
+                        <>
+                          {/* Clue Cell Content */}
+                          {cell.isClue && (
+                            <div className="relative w-full h-full p-1">
+                              <div className="w-full h-full bg-white rounded-lg shadow-md border border-emerald-100 overflow-hidden relative group">
+                                {cell.clueImageUrl ? (
+                                  <img
+                                    src={cell.clueImageUrl}
+                                    alt={cell.clueLabel}
+                                    className="w-full h-full object-cover rounded-md group-hover:scale-110 transition-transform"
+                                    referrerPolicy="no-referrer"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-stone-50 animate-pulse">
+                                    <RefreshCw className="w-4 h-4 text-emerald-300 animate-spin" />
+                                  </div>
+                                )}
+                              </div>
+                              {/* Arrow outside the icon container for better visibility and print support */}
+                              <div className={cn(
+                                "absolute z-20 flex items-center justify-center bg-white rounded-full shadow-md border border-emerald-200 p-0.5 sm:p-1 print:border-stone-300 print:shadow-none",
+                                cell.clueDirection === 'H' ? "-left-2 sm:-left-3 top-1/2 -translate-y-1/2" : "-bottom-2 sm:-bottom-3 left-1/2 -translate-x-1/2"
+                              )}>
+                                {cell.clueDirection === 'H' ? (
+                                  <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-600 print:text-stone-800" />
+                                ) : (
+                                  <ArrowDown className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-600 print:text-stone-800" />
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Input (only for non-clue cells) */}
+                          {!cell.isClue && (
+                            <input
+                              ref={el => inputRefs.current[y][x] = el}
+                              type="text"
+                              maxLength={1}
+                              value={showSolution ? (cell.char || '') : userGrid[y][x]}
+                              onChange={(e) => handleInputChange(y, x, e.target.value)}
+                              onKeyDown={(e) => handleKeyDown(e, y, x)}
+                              className={cn(
+                                "w-full h-full text-center text-base sm:text-2xl font-bold bg-transparent outline-none transition-colors",
+                                isComplete ? "text-emerald-600" : "text-stone-800",
+                                showSolution && "text-blue-600"
+                              )}
+                              disabled={isComplete || showSolution}
+                            />
+                          )}
+                        </>
+                      ) : null}
+                    </div>
+                  ))
+                ))}
               </div>
 
+              {/* Success Message */}
+              <AnimatePresence>
+                {isComplete && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    className="absolute -bottom-12 left-0 right-0 flex justify-center print:hidden"
+                  >
+                    <div className="bg-emerald-500 text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-3">
+                      <Trophy className="w-5 h-5" />
+                      <span className="font-bold">כל הכבוד! פתרת את התשחץ!</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Sidebar / Instructions */}
+            <div className="flex-1 space-y-8 print:hidden">
               <section className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
                 <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  <FileStack className="w-5 h-5 text-emerald-500" />
-                  הדפסת מספר תשחצים אקראיים
+                  <Info className="w-5 h-5 text-emerald-500" />
+                  איך משחקים?
                 </h2>
-                <p className="text-sm text-stone-600 mb-4 leading-relaxed">
-                  יוצרים מספר תשחצים אקראיים בחלון חדש — כל תשחץ בדף נפרד. אפשר להדפיס או לשמור כ־PDF מתפריט המדפסת.
-                </p>
-                <div className="flex flex-col sm:flex-row sm:items-end gap-4 mb-4">
-                  <label className="flex flex-col gap-1.5 flex-1">
-                    <span className="text-xs font-semibold text-stone-500">כמה תשחצים?</span>
-                    <input
-                      type="number"
-                      min={1}
-                      max={BULK_PRINT_MAX}
-                      value={bulkCount}
-                      onChange={(e) => setBulkCount(Number(e.target.value))}
-                      className="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-stone-800 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                    />
-                  </label>
-                  <span className="text-xs text-stone-400 pb-2">עד {BULK_PRINT_MAX}</span>
-                </div>
-                <label className="flex items-center gap-3 mb-4 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={bulkIncludeSolutions}
-                    onChange={(e) => setBulkIncludeSolutions(e.target.checked)}
-                    className="w-4 h-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
-                  />
-                  <span className="text-sm text-stone-700">להוסיף דפי פתרון (אחרי כל דפי התשחצים)</span>
-                </label>
-                {bulkError && (
-                  <p className="text-sm text-red-600 mb-3" role="alert">
-                    {bulkError}
-                  </p>
-                )}
-                <button
-                  type="button"
-                  onClick={handleBulkPrint}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-stone-800 hover:bg-stone-900 text-white font-bold text-sm transition-all active:scale-[0.98]"
-                >
-                  <Printer className="w-4 h-4" />
-                  צור קובץ להדפסה
-                </button>
+                <ul className="space-y-4 text-sm text-stone-600">
+                  <li className="flex gap-3">
+                    <div className="w-6 h-6 rounded-full bg-emerald-50 flex-shrink-0 flex items-center justify-center text-emerald-600 font-bold text-xs">1</div>
+                    <p>הסתכלו על הציורים שמעל המשבצות.</p>
+                  </li>
+                  <li className="flex gap-3">
+                    <div className="w-6 h-6 rounded-full bg-emerald-50 flex-shrink-0 flex items-center justify-center text-emerald-600 font-bold text-xs">2</div>
+                    <p>כתבו את האותיות של המילה לפי כיוון החץ.</p>
+                  </li>
+                  <li className="flex gap-3">
+                    <div className="w-6 h-6 rounded-full bg-emerald-50 flex-shrink-0 flex items-center justify-center text-emerald-600 font-bold text-xs">3</div>
+                    <p>אפשר להשתמש בחיצים במקלדת כדי לעבור בין משבצות.</p>
+                  </li>
+                </ul>
               </section>
+
+              {/* Print Tip for Iframe */}
+              {isIframe && (
+                <section className="bg-amber-50 p-6 rounded-3xl border border-amber-100 shadow-sm">
+                  <h2 className="text-lg font-bold mb-3 flex items-center gap-2 text-amber-700">
+                    <Printer className="w-5 h-5" />
+                    טיפ להדפסה
+                  </h2>
+                  <p className="text-sm text-amber-800 leading-relaxed">
+                    אם כפתור ההדפסה לא נפתח, לחצו על הכפתור <strong>"פתח בלשונית חדשה"</strong> למעלה ואז נסו להדפיס שוב מהלשונית החדשה.
+                  </p>
+                </section>
+              )}
+
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => setShowSolution(!showSolution)}
+                  className="w-full py-4 rounded-2xl border-2 border-stone-200 font-bold text-stone-500 hover:bg-stone-50 transition-all active:scale-[0.98]"
+                >
+                  {showSolution ? 'הסתר פתרון' : 'הצג פתרון'}
+                </button>
+
+                <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 text-amber-800 text-xs flex gap-3">
+                  <Download className="w-5 h-5 flex-shrink-0" />
+                  <p>טיפ: לחצו על כפתור ההדפסה כדי לקבל דף עבודה מוכן למדפסת!</p>
+                </div>
+
+                <section className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
+                  <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                    <FileStack className="w-5 h-5 text-emerald-500" />
+                    הדפסת מספר תשחצים אקראיים
+                  </h2>
+                  <p className="text-sm text-stone-600 mb-4 leading-relaxed">
+                    יוצרים מספר תשחצים אקראיים בחלון חדש — כל תשחץ בדף נפרד. אפשר להדפיס או לשמור כ־PDF מתפריט המדפסת.
+                  </p>
+                  <div className="flex flex-col sm:flex-row sm:items-end gap-4 mb-4">
+                    <label className="flex flex-col gap-1.5 flex-1">
+                      <span className="text-xs font-semibold text-stone-500">כמה תשחצים?</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={BULK_PRINT_MAX}
+                        value={bulkCount}
+                        onChange={(e) => setBulkCount(Number(e.target.value))}
+                        className="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-stone-800 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                      />
+                    </label>
+                    <span className="text-xs text-stone-400 pb-2">עד {BULK_PRINT_MAX}</span>
+                  </div>
+                  <label className="flex items-center gap-3 mb-4 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={bulkIncludeSolutions}
+                      onChange={(e) => setBulkIncludeSolutions(e.target.checked)}
+                      className="w-4 h-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span className="text-sm text-stone-700">להוסיף דפי פתרון (אחרי כל דפי התשחצים)</span>
+                  </label>
+                  {bulkError && (
+                    <p className="text-sm text-red-600 mb-3" role="alert">
+                      {bulkError}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleBulkPrint}
+                    className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-stone-800 hover:bg-stone-900 text-white font-bold text-sm transition-all active:scale-[0.98]"
+                  >
+                    <Printer className="w-4 h-4" />
+                    צור קובץ להדפסה
+                  </button>
+                </section>
+              </div>
             </div>
           </div>
-        </div>
         )}
       </main>
 

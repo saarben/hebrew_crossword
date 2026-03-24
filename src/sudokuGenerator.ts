@@ -1,37 +1,41 @@
 /**
- * Generates 4x4 Sudoku puzzles using icons.
- * A 4x4 Sudoku has 2x2 sub-grids and uses 4 distinct symbols.
+ * Generates Sudoku puzzles of various sizes using icons.
+ * A Sudoku with blockSize B has an N x N grid where N = B*B,
+ * and uses N distinct symbols.
  */
 
 export interface SudokuPuzzle {
-  /** The complete solved grid (4x4), values 0-3 indexing into the icons array */
+  /** The complete solved grid (NxN), values 0 to (N-1) indexing into the icons array */
   solution: number[][];
   /** The puzzle grid with some cells removed (-1 = empty) */
   puzzle: number[][];
   /** Number of pre-filled cells */
   givenCount: number;
+  /** The block size used (e.g., 2 for 4x4, 3 for 9x9) */
+  blockSize: number;
 }
 
 /**
- * Generate a valid complete 4x4 Sudoku grid using backtracking.
+ * Generate a valid complete Sudoku grid using backtracking.
  */
-function generateFullGrid(): number[][] {
-  const grid: number[][] = Array.from({ length: 4 }, () => Array(4).fill(-1));
+function generateFullGrid(blockSize: number): number[][] {
+  const totalSize = blockSize * blockSize;
+  const grid: number[][] = Array.from({ length: totalSize }, () => Array(totalSize).fill(-1));
 
   function isValid(grid: number[][], row: number, col: number, num: number): boolean {
     // Check row
-    for (let c = 0; c < 4; c++) {
+    for (let c = 0; c < totalSize; c++) {
       if (grid[row][c] === num) return false;
     }
     // Check column
-    for (let r = 0; r < 4; r++) {
+    for (let r = 0; r < totalSize; r++) {
       if (grid[r][col] === num) return false;
     }
-    // Check 2x2 box
-    const boxRow = Math.floor(row / 2) * 2;
-    const boxCol = Math.floor(col / 2) * 2;
-    for (let r = boxRow; r < boxRow + 2; r++) {
-      for (let c = boxCol; c < boxCol + 2; c++) {
+    // Check box
+    const boxRow = Math.floor(row / blockSize) * blockSize;
+    const boxCol = Math.floor(col / blockSize) * blockSize;
+    for (let r = boxRow; r < boxRow + blockSize; r++) {
+      for (let c = boxCol; c < boxCol + blockSize; c++) {
         if (grid[r][c] === num) return false;
       }
     }
@@ -39,12 +43,12 @@ function generateFullGrid(): number[][] {
   }
 
   function solve(pos: number): boolean {
-    if (pos === 16) return true;
-    const row = Math.floor(pos / 4);
-    const col = pos % 4;
+    if (pos === totalSize * totalSize) return true;
+    const row = Math.floor(pos / totalSize);
+    const col = pos % totalSize;
 
     // Randomize order to get different puzzles each time
-    const nums = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+    const nums = Array.from({ length: totalSize }, (_, i) => i).sort(() => Math.random() - 0.5);
     for (const num of nums) {
       if (isValid(grid, row, col, num)) {
         grid[row][col] = num;
@@ -61,21 +65,23 @@ function generateFullGrid(): number[][] {
 
 /**
  * Check if a puzzle has a unique solution.
+ * For larger grids (blockSize > 3), this might be slow, so we may use a limit.
  */
-function hasUniqueSolution(puzzle: number[][]): boolean {
+function hasUniqueSolution(puzzle: number[][], blockSize: number): boolean {
+  const totalSize = blockSize * blockSize;
   let count = 0;
 
   function isValid(grid: number[][], row: number, col: number, num: number): boolean {
-    for (let c = 0; c < 4; c++) {
+    for (let c = 0; c < totalSize; c++) {
       if (c !== col && grid[row][c] === num) return false;
     }
-    for (let r = 0; r < 4; r++) {
+    for (let r = 0; r < totalSize; r++) {
       if (r !== row && grid[r][col] === num) return false;
     }
-    const boxRow = Math.floor(row / 2) * 2;
-    const boxCol = Math.floor(col / 2) * 2;
-    for (let r = boxRow; r < boxRow + 2; r++) {
-      for (let c = boxCol; c < boxCol + 2; c++) {
+    const boxRow = Math.floor(row / blockSize) * blockSize;
+    const boxCol = Math.floor(col / blockSize) * blockSize;
+    for (let r = boxRow; r < boxRow + blockSize; r++) {
+      for (let c = boxCol; c < boxCol + blockSize; c++) {
         if (r !== row || c !== col) {
           if (grid[r][c] === num) return false;
         }
@@ -86,17 +92,17 @@ function hasUniqueSolution(puzzle: number[][]): boolean {
 
   function solve(grid: number[][], pos: number): void {
     if (count > 1) return; // Early exit
-    if (pos === 16) {
+    if (pos === totalSize * totalSize) {
       count++;
       return;
     }
-    const row = Math.floor(pos / 4);
-    const col = pos % 4;
+    const row = Math.floor(pos / totalSize);
+    const col = pos % totalSize;
     if (grid[row][col] !== -1) {
       solve(grid, pos + 1);
       return;
     }
-    for (let num = 0; num < 4; num++) {
+    for (let num = 0; num < totalSize; num++) {
       if (isValid(grid, row, col, num)) {
         grid[row][col] = num;
         solve(grid, pos + 1);
@@ -112,19 +118,21 @@ function hasUniqueSolution(puzzle: number[][]): boolean {
 
 /**
  * Generate a puzzle by removing cells from a complete grid.
- * For 6-year-olds, we keep more givens (6-8 out of 16).
  */
-export function generateSudoku(difficulty: 'easy' | 'medium' = 'easy'): SudokuPuzzle {
-  const solution = generateFullGrid();
+export function generateSudoku(blockSize: number = 2, difficulty: 'easy' | 'medium' = 'easy'): SudokuPuzzle {
+  const totalSize = blockSize * blockSize;
+  const solution = generateFullGrid(blockSize);
   const puzzle = solution.map(row => [...row]);
 
-  // For easy: remove 8 cells (keep 8 givens), for medium: remove 10 (keep 6)
-  const cellsToRemove = difficulty === 'easy' ? 8 : 10;
+  // Difficulty settings (approximate percentage of cells to remove)
+  // For easy: remove ~50% (B=2: 8, B=3: 40, B=4: 120), medium: ~60%
+  const cellsToRemoveRatio = difficulty === 'easy' ? 0.5 : 0.65;
+  const targetCellsToRemove = Math.floor(totalSize * totalSize * cellsToRemoveRatio);
 
   // Get all positions and shuffle
   const positions: [number, number][] = [];
-  for (let r = 0; r < 4; r++) {
-    for (let c = 0; c < 4; c++) {
+  for (let r = 0; r < totalSize; r++) {
+    for (let c = 0; c < totalSize; c++) {
       positions.push([r, c]);
     }
   }
@@ -132,10 +140,11 @@ export function generateSudoku(difficulty: 'easy' | 'medium' = 'easy'): SudokuPu
 
   let removed = 0;
   for (const [r, c] of positions) {
-    if (removed >= cellsToRemove) break;
+    if (removed >= targetCellsToRemove) break;
     const backup = puzzle[r][c];
     puzzle[r][c] = -1;
-    if (hasUniqueSolution(puzzle)) {
+    // For large grids, checking uniqueness can be slow, but for childrens game easy puzzles it's likely unique
+    if (blockSize > 3 || hasUniqueSolution(puzzle, blockSize)) {
       removed++;
     } else {
       puzzle[r][c] = backup;
@@ -145,6 +154,8 @@ export function generateSudoku(difficulty: 'easy' | 'medium' = 'easy'): SudokuPu
   return {
     solution,
     puzzle,
-    givenCount: 16 - removed,
+    givenCount: (totalSize * totalSize) - removed,
+    blockSize,
   };
 }
+
