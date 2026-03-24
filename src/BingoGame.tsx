@@ -5,6 +5,10 @@ import confetti from 'canvas-confetti';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { WORD_LIST, WordInfo } from './words';
+import { GERMAN_WORD_LIST } from './wordsGerman';
+
+const isGerman = typeof window !== 'undefined' && (window.location.pathname.includes('/german') || window.location.hash.includes('/german'));
+const activeWordList = isGerman ? GERMAN_WORD_LIST : WORD_LIST;
 import { generateIcon } from './services/imageService';
 import { getFluentEmojiUrl } from './constants/iconMapping';
 
@@ -24,7 +28,7 @@ export default function BingoGame() {
     const newGame = useCallback(() => {
         // Filter WORD_LIST to only include words that have a high-quality fluent emoji mapping
         // and ensure we don't have duplicate Hebrew words in the pool
-        const uniqueWords = Array.from(new Map(WORD_LIST.map(w => [w.word, w])).values());
+        const uniqueWords = Array.from(new Map(activeWordList.map(w => [w.word, w])).values());
         const availableWords = uniqueWords.filter(w => !!getFluentEmojiUrl(w.label));
 
         // Pick 9 random words for a 3x3 grid
@@ -78,7 +82,7 @@ export default function BingoGame() {
     const currentWordDisplay = currentWordInfo ? (currentWordInfo.wordWithNiqqud || currentWordInfo.word) : '';
 
     return (
-        <div className="flex flex-col items-center gap-6 w-full max-w-lg mx-auto px-3 pb-12" dir="rtl">
+        <div className="flex flex-col items-center gap-6 w-full max-w-lg mx-auto px-3 pb-12" dir={isGerman ? "ltr" : "rtl"}>
             {/* Header buttons */}
             <div className="flex items-center gap-3 w-full justify-center">
                 <button
@@ -86,7 +90,7 @@ export default function BingoGame() {
                     className="flex items-center gap-2 px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-full text-sm font-semibold transition-all active:scale-95"
                 >
                     <RefreshCw className="w-4 h-4" />
-                    <span>משחק חדש</span>
+                    <span>{isGerman ? "Neues Spiel" : "משחק חדש"}</span>
                 </button>
                 <button
                     onClick={() => setShowHelp(!showHelp)}
@@ -96,7 +100,7 @@ export default function BingoGame() {
                     )}
                 >
                     <HelpCircle className="w-4 h-4" />
-                    <span>עזרה</span>
+                    <span>{isGerman ? "Hilfe" : "עזרה"}</span>
                 </button>
             </div>
 
@@ -110,11 +114,11 @@ export default function BingoGame() {
                         className="overflow-hidden w-full max-w-md mx-auto"
                     >
                         <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-sm text-stone-600 space-y-2">
-                            <p className="font-bold text-emerald-700">איך משחקים?</p>
+                            <p className="font-bold text-emerald-700">{isGerman ? "Wie spielt man?" : "איך משחקים?"}</p>
                             <ul className="space-y-1.5 list-disc list-inside">
-                                <li>המילה שצריך לחפש מופיעה בגדול למעלה.</li>
-                                <li>מצאו את הציור שמתאים למילה ולחצו עליו.</li>
-                                <li>השלימו את כל הלוח כדי לנצח!</li>
+                                <li>{isGerman ? "Das gesuchte Wort steht groß oben." : "המילה שצריך לחפש מופיעה בגדול למעלה."}</li>
+                                <li>{isGerman ? "Finde das zum Wort passende Bild und tippe es an." : "מצאו את הציור שמתאים למילה ולחצו עליו."}</li>
+                                <li>{isGerman ? "Vervollständige das ganze Brett, um zu gewinnen!" : "השלימו את כל הלוח כדי לנצח!"}</li>
                             </ul>
                         </div>
                     </motion.div>
@@ -145,7 +149,7 @@ export default function BingoGame() {
                             className="flex items-center gap-3 bg-emerald-500 text-white px-8 py-4 rounded-full shadow-xl"
                         >
                             <Trophy className="w-6 h-6 sm:w-8 sm:h-8" />
-                            <span className="font-bold text-xl sm:text-3xl">בינגו! כל הכבוד!</span>
+                            <span className="font-bold text-xl sm:text-3xl">{isGerman ? "Bingo! Gut gemacht!" : "בינגו! כל הכבוד!"}</span>
                         </motion.div>
                     )}
                 </AnimatePresence>

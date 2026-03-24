@@ -7,6 +7,10 @@ import { twMerge } from 'tailwind-merge';
 import { generateSudoku, SudokuPuzzle } from './sudokuGenerator';
 import { generateIcon } from './services/imageService';
 import { WORD_LIST } from './words';
+import { GERMAN_WORD_LIST } from './wordsGerman';
+
+const isGerman = typeof window !== 'undefined' && (window.location.pathname.includes('/german') || window.location.hash.includes('/german'));
+const activeWordList = isGerman ? GERMAN_WORD_LIST : WORD_LIST;
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -14,7 +18,7 @@ function cn(...inputs: ClassValue[]) {
 
 /** Pick N random icons from the word list */
 function pickIcons(count: number): { label: string; url: string }[] {
-  const shuffled = [...WORD_LIST].sort(() => Math.random() - 0.5);
+  const shuffled = [...activeWordList].sort(() => Math.random() - 0.5);
   const picked = shuffled.slice(0, count);
   return picked.map(w => ({
     label: w.label,
@@ -332,8 +336,8 @@ export default function SudokuGame() {
 
   if (!puzzle || icons.length === 0) {
     return (
-      <div className="flex items-center justify-center p-6 text-stone-600" dir="rtl">
-        <p>טוען…</p>
+      <div className="flex items-center justify-center p-6 text-stone-600" dir={isGerman ? "ltr" : "rtl"}>
+        <p>{isGerman ? "Laden…" : "טוען…"}</p>
       </div>
     );
   }
@@ -341,7 +345,7 @@ export default function SudokuGame() {
   const iconCounts = getIconCounts();
 
   return (
-    <div className="flex flex-col items-center gap-6 w-full max-w-md mx-auto px-3" dir="rtl">
+    <div className="flex flex-col items-center gap-6 w-full max-w-md mx-auto px-3" dir={isGerman ? "ltr" : "rtl"}>
       {/* Header buttons */}
       <div className="flex flex-col items-center gap-4 w-full">
         <div className="flex items-center gap-2 bg-stone-100 p-1 rounded-2xl">
@@ -367,7 +371,7 @@ export default function SudokuGame() {
             className="flex items-center gap-2 px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-full text-sm font-semibold transition-all active:scale-95"
           >
             <RefreshCw className="w-4 h-4" />
-            <span>משחק חדש</span>
+            <span>{isGerman ? "Neues Spiel" : "משחק חדש"}</span>
           </button>
           <button
             onClick={() => setShowHelp(!showHelp)}
@@ -377,7 +381,7 @@ export default function SudokuGame() {
             )}
           >
             <HelpCircle className="w-4 h-4" />
-            <span>עזרה</span>
+            <span>{isGerman ? "Hilfe" : "עזרה"}</span>
           </button>
         </div>
       </div>
@@ -392,13 +396,13 @@ export default function SudokuGame() {
             className="overflow-hidden w-full"
           >
             <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-sm text-stone-600 space-y-2">
-              <p className="font-bold text-emerald-700">איך משחקים סודוקו?</p>
+              <p className="font-bold text-emerald-700">{isGerman ? "Wie spielt man Sudoku?" : "איך משחקים סודוקו?"}</p>
               <ul className="space-y-1.5 list-disc list-inside">
-                <li>כל שורה צריכה להכיל את כל {totalSize} הציורים, בלי חזרות</li>
-                <li>כל עמודה צריכה להכיל את כל {totalSize} הציורים, בלי חזרות</li>
-                <li>כל ריבוע צבעוני ({blockSize}×{blockSize}) צריך להכיל את כל הציורים</li>
-                <li>גררו ציור מהמגש למשבצת ריקה, או לחצו על משבצת ואז על ציור</li>
-                <li>לחצו על ציור שכבר במשבצת כדי להסיר אותו</li>
+                <li>{isGerman ? `Jede Reihe muss alle ${totalSize} Bilder ohne Wiederholung enthalten` : `כל שורה צריכה להכיל את כל ${totalSize} הציורים, בלי חזרות`}</li>
+                <li>{isGerman ? `Jede Spalte muss alle ${totalSize} Bilder ohne Wiederholung enthalten` : `כל עמודה צריכה להכיל את כל ${totalSize} הציורים, בלי חזרות`}</li>
+                <li>{isGerman ? `Jedes farbige Quadrat (${blockSize}×${blockSize}) muss alle Bilder enthalten` : `כל ריבוע צבעוני (${blockSize}×${blockSize}) צריך להכיל את כל הציורים`}</li>
+                <li>{isGerman ? "Ziehe ein Bild in ein leeres Kästchen oder tippe auf ein Kästchen und dann auf ein Bild" : "גררו ציור מהמגש למשבצת ריקה, או לחצו על משבצת ואז על ציור"}</li>
+                <li>{isGerman ? "Tippe auf ein gesetztes Bild, um es zu entfernen" : "לחצו על ציור שכבר במשבצת כדי להסיר אותו"}</li>
               </ul>
             </div>
           </motion.div>
@@ -517,7 +521,7 @@ export default function SudokuGame() {
             className="flex items-center gap-3 bg-emerald-500 text-white px-6 py-3 rounded-full shadow-xl"
           >
             <Trophy className="w-5 h-5" />
-            <span className="font-bold text-lg">כל הכבוד! פתרת את הסודוקו!</span>
+            <span className="font-bold text-lg">{isGerman ? "Gut gemacht! Du hast das Sudoku gelöst!" : "כל הכבוד! פתרת את הסודוקו!"}</span>
           </motion.div>
         )}
         {isWrong && (
@@ -528,20 +532,20 @@ export default function SudokuGame() {
             transition={{ duration: 0.4 }}
             className="flex items-center gap-3 bg-orange-100 text-orange-700 px-6 py-3 rounded-full border border-orange-200"
           >
-            <span className="font-bold">עוד קצת... נסו להחליף ציורים!</span>
+            <span className="font-bold">{isGerman ? "Fast... versuche Bilder zu tauschen!" : "עוד קצת... נסו להחליף ציורים!"}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Icon tray */}
-      <div className="w-full bg-white rounded-2xl shadow-lg shadow-stone-200/50 border border-stone-100 p-4">
-        <p className="text-xs text-stone-400 font-semibold mb-3 text-center">גררו ציור למשבצת ריקה</p>
-        <div className="flex justify-center gap-2 sm:gap-3 flex-wrap">
+      <div className="w-full bg-white rounded-2xl shadow-lg shadow-stone-200/50 border border-stone-100 p-3 sm:p-4">
+        <p className="text-xs text-stone-400 font-semibold mb-2 sm:mb-3 text-center">{isGerman ? "Ziehe ein Bild in ein leeres Kästchen" : "גררו ציור למשבצת ריקה"}</p>
+        <div className="flex sm:justify-center gap-2 sm:gap-3 overflow-x-auto pb-2 px-1 snap-x" style={{ scrollbarWidth: 'thin' }}>
           {icons.map((icon, idx) => {
             const remaining = iconCounts[idx];
             const isSelectedIcon = dragIcon === idx;
             return (
-              <div key={idx} className="flex flex-col items-center gap-1">
+              <div key={idx} className="flex flex-col items-center gap-1 shrink-0 snap-center">
                 <div
                   draggable={remaining > 0 && !isComplete}
                   onDragStart={(e) => handleDragStart(e, idx)}
@@ -551,7 +555,7 @@ export default function SudokuGame() {
                   onClick={() => handleTrayTap(idx)}
                   className={cn(
                     "rounded-xl flex items-center justify-center transition-all duration-200 touch-none",
-                    blockSize === 2 ? "w-14 h-14" : "w-11 h-11",
+                    blockSize === 2 ? "w-14 h-14" : blockSize === 3 ? "w-11 h-11" : "w-10 h-10",
                     remaining > 0 && !isComplete
                       ? "bg-stone-50 border border-stone-200 hover:border-emerald-300 hover:shadow-md cursor-grab active:cursor-grabbing active:scale-105"
                       : "bg-stone-100 border border-stone-100 opacity-30 cursor-not-allowed",

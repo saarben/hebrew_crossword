@@ -26,6 +26,10 @@ import confetti from 'canvas-confetti';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { WORD_LIST } from './words';
+import { GERMAN_WORD_LIST } from './wordsGerman';
+
+const isGerman = typeof window !== 'undefined' && (window.location.pathname.includes('/german') || window.location.hash.includes('/german'));
+
 import { generateCrossword, CrosswordData, GridCell } from './crosswordGenerator';
 import { generateIcon } from './services/imageService';
 import {
@@ -66,7 +70,8 @@ export default function App() {
     try {
       setBootError(null);
       // Select random words
-      const shuffled = [...WORD_LIST].sort(() => 0.5 - Math.random());
+      const activeWordList = isGerman ? GERMAN_WORD_LIST : WORD_LIST;
+      const shuffled = [...activeWordList].sort(() => 0.5 - Math.random());
       const selected = shuffled.slice(0, 15); // Try to place up to 15 words
       const data = generateCrossword(selected, gridSize);
       setCrossword(data);
@@ -119,8 +124,11 @@ export default function App() {
   const handleInputChange = (y: number, x: number, value: string) => {
     if (isComplete) return;
 
-    // Only allow one character (Hebrew)
-    const char = value.slice(-1);
+    // Only allow one character (Hebrew) or uppercase for German
+    let char = value.slice(-1);
+    if (isGerman) {
+      char = char.toUpperCase();
+    }
     const newGrid = [...userGrid];
     newGrid[y][x] = char;
     setUserGrid(newGrid);
@@ -227,22 +235,22 @@ export default function App() {
 
   if (bootError) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-[#FDFCFB] text-red-800" dir="rtl">
-        <p className="text-center max-w-md">שגיאה בטעינת התשחץ: {bootError}</p>
+      <div className="min-h-screen flex items-center justify-center p-6 bg-[#FDFCFB] text-red-800" dir={isGerman ? "ltr" : "rtl"}>
+        <p className="text-center max-w-md">{isGerman ? `Fehler beim Laden: ${bootError}` : `שגיאה בטעינת התשחץ: ${bootError}`}</p>
       </div>
     );
   }
 
   if (!crossword) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-[#FDFCFB] text-stone-600" dir="rtl">
-        <p>טוען…</p>
+      <div className="min-h-screen flex items-center justify-center p-6 bg-[#FDFCFB] text-stone-600" dir={isGerman ? "ltr" : "rtl"}>
+        <p>{isGerman ? "Laden…" : "טוען…"}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFCFB] text-[#2D3436] font-sans selection:bg-emerald-100" dir="rtl">
+    <div className="min-h-screen bg-[#FDFCFB] text-[#2D3436] font-sans selection:bg-emerald-100" dir={isGerman ? "ltr" : "rtl"}>
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-stone-200 z-50 print:hidden">
         <div className="max-w-5xl mx-auto px-3 sm:px-6 py-2 sm:h-20 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
@@ -250,14 +258,14 @@ export default function App() {
             <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-200">
               <RefreshCw className="w-4 h-4 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <h1 className="text-lg sm:text-xl font-bold tracking-tight">משחקי למידה לכיתה א'</h1>
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-xl font-bold tracking-tight whitespace-nowrap truncate">{isGerman ? "Lernspiele für 1. Klasse" : "משחקי למידה לכיתה א'"}</h1>
               <div className="flex items-center gap-2">
-                <p className="text-xs text-stone-500 font-medium hidden sm:block">לומדים בכיף</p>
+                <p className="text-xs text-stone-500 font-medium hidden sm:block">{isGerman ? "Lernen mit Spaß" : "לומדים בכיף"}</p>
                 {isGeneratingIcons && (
                   <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 rounded-full border border-emerald-100 animate-pulse">
                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce" />
-                    <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">מייצר תמונות AI...</span>
+                    <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">{isGerman ? "Erstelle KI-Bilder..." : "מייצר תמונות AI..."}</span>
                   </div>
                 )}
               </div>
@@ -275,7 +283,7 @@ export default function App() {
                 )}
               >
                 <PenLine className="w-4 h-4" />
-                <span className="inline">תשחץ</span>
+                <span className="inline">{isGerman ? "Rätsel" : "תשחץ"}</span>
               </button>
               <button
                 onClick={() => setActiveTab('sudoku')}
@@ -285,7 +293,7 @@ export default function App() {
                 )}
               >
                 <Grid3X3 className="w-4 h-4" />
-                <span className="inline">סודוקו</span>
+                <span className="inline">{isGerman ? "Sudoku" : "סודוקו"}</span>
               </button>
               <button
                 onClick={() => setActiveTab('memory')}
@@ -295,7 +303,7 @@ export default function App() {
                 )}
               >
                 <LayoutGrid className="w-4 h-4" />
-                <span className="inline">זיכרון</span>
+                <span className="inline">{isGerman ? "Memory" : "זיכרון"}</span>
               </button>
               <button
                 onClick={() => setActiveTab('bingo')}
@@ -305,7 +313,7 @@ export default function App() {
                 )}
               >
                 <Grid3X3 className="w-4 h-4" />
-                <span className="inline">בינגו</span>
+                <span className="inline">{isGerman ? "Bingo" : "בינגו"}</span>
               </button>
               <button
                 onClick={() => setActiveTab('balance')}
@@ -315,7 +323,7 @@ export default function App() {
                 )}
               >
                 <Calculator className="w-4 h-4" />
-                <span className="inline">מאזניים</span>
+                <span className="inline">{isGerman ? "Waage" : "מאזניים"}</span>
               </button>
             </div>
             {activeTab === 'crossword' && (
@@ -327,7 +335,7 @@ export default function App() {
                   className="hidden sm:flex items-center gap-2 px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-full text-sm font-semibold transition-all active:scale-95"
                 >
                   <ExternalLink className="w-4 h-4" />
-                  <span>פתח בלשונית חדשה</span>
+                  <span>{isGerman ? "In neuem Tab öffnen" : "פתח בלשונית חדשה"}</span>
                 </a>
                 <button
                   onClick={() => {
@@ -338,21 +346,21 @@ export default function App() {
                   className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-full text-sm font-semibold transition-all active:scale-95"
                 >
                   <RotateCcw className="w-4 h-4" />
-                  <span className="hidden sm:inline">איפוס</span>
+                  <span className="hidden sm:inline">{isGerman ? "Zurücksetzen" : "איפוס"}</span>
                 </button>
                 <button
                   onClick={createNewPuzzle}
                   className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-full text-sm font-semibold transition-all active:scale-95"
                 >
                   <RefreshCw className="w-4 h-4" />
-                  <span className="hidden sm:inline">חדש</span>
+                  <span className="hidden sm:inline">{isGerman ? "Neu" : "חדש"}</span>
                 </button>
                 <button
                   onClick={handlePrint}
                   className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full text-sm font-semibold shadow-lg shadow-emerald-100 transition-all active:scale-95"
                 >
                   <Printer className="w-4 h-4" />
-                  <span className="hidden sm:inline">הדפסה</span>
+                  <span className="hidden sm:inline">{isGerman ? "Drucken" : "הדפסה"}</span>
                 </button>
               </>
             )}
@@ -458,7 +466,7 @@ export default function App() {
                   >
                     <div className="bg-emerald-500 text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-3">
                       <Trophy className="w-5 h-5" />
-                      <span className="font-bold">כל הכבוד! פתרת את התשחץ!</span>
+                      <span className="font-bold">{isGerman ? "Gut gemacht! Du hast es gelöst!" : "כל הכבוד! פתרת את התשחץ!"}</span>
                     </div>
                   </motion.div>
                 )}
@@ -470,20 +478,20 @@ export default function App() {
               <section className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
                 <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                   <Info className="w-5 h-5 text-emerald-500" />
-                  איך משחקים?
+                  {isGerman ? "Wie spielt man?" : "איך משחקים?"}
                 </h2>
                 <ul className="space-y-4 text-sm text-stone-600">
                   <li className="flex gap-3">
                     <div className="w-6 h-6 rounded-full bg-emerald-50 flex-shrink-0 flex items-center justify-center text-emerald-600 font-bold text-xs">1</div>
-                    <p>הסתכלו על הציורים שמעל המשבצות.</p>
+                    <p>{isGerman ? "Schau dir die Bilder über den Kästchen an." : "הסתכלו על הציורים שמעל המשבצות."}</p>
                   </li>
                   <li className="flex gap-3">
                     <div className="w-6 h-6 rounded-full bg-emerald-50 flex-shrink-0 flex items-center justify-center text-emerald-600 font-bold text-xs">2</div>
-                    <p>כתבו את האותיות של המילה לפי כיוון החץ.</p>
+                    <p>{isGerman ? "Schreibe die Buchstaben des Wortes in Pfeilrichtung." : "כתבו את האותיות של המילה לפי כיוון החץ."}</p>
                   </li>
                   <li className="flex gap-3">
                     <div className="w-6 h-6 rounded-full bg-emerald-50 flex-shrink-0 flex items-center justify-center text-emerald-600 font-bold text-xs">3</div>
-                    <p>אפשר להשתמש בחיצים במקלדת כדי לעבור בין משבצות.</p>
+                    <p>{isGerman ? "Du kannst die Pfeiltasten benutzen, um zwischen den Kästchen zu wechseln." : "אפשר להשתמש בחיצים במקלדת כדי לעבור בין משבצות."}</p>
                   </li>
                 </ul>
               </section>
@@ -493,10 +501,13 @@ export default function App() {
                 <section className="bg-amber-50 p-6 rounded-3xl border border-amber-100 shadow-sm">
                   <h2 className="text-lg font-bold mb-3 flex items-center gap-2 text-amber-700">
                     <Printer className="w-5 h-5" />
-                    טיפ להדפסה
+                    {isGerman ? "Drucktipp" : "טיפ להדפסה"}
                   </h2>
                   <p className="text-sm text-amber-800 leading-relaxed">
-                    אם כפתור ההדפסה לא נפתח, לחצו על הכפתור <strong>"פתח בלשונית חדשה"</strong> למעלה ואז נסו להדפיס שוב מהלשונית החדשה.
+                    {isGerman ? 
+                      <>Wenn der Drucken-Button nicht funktioniert, klicke oben auf <strong>"In neuem Tab öffnen"</strong>.</> : 
+                      <>אם כפתור ההדפסה לא נפתח, לחצו על הכפתור <strong>"פתח בלשונית חדשה"</strong> למעלה ואז נסו להדפיס שוב מהלשונית החדשה.</>
+                    }
                   </p>
                 </section>
               )}
@@ -506,25 +517,27 @@ export default function App() {
                   onClick={() => setShowSolution(!showSolution)}
                   className="w-full py-4 rounded-2xl border-2 border-stone-200 font-bold text-stone-500 hover:bg-stone-50 transition-all active:scale-[0.98]"
                 >
-                  {showSolution ? 'הסתר פתרון' : 'הצג פתרון'}
+                  {showSolution 
+                    ? (isGerman ? 'Lösung verbergen' : 'הסתר פתרון') 
+                    : (isGerman ? 'Lösung anzeigen' : 'הצג פתרון')}
                 </button>
 
                 <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 text-amber-800 text-xs flex gap-3">
                   <Download className="w-5 h-5 flex-shrink-0" />
-                  <p>טיפ: לחצו על כפתור ההדפסה כדי לקבל דף עבודה מוכן למדפסת!</p>
+                  <p>{isGerman ? "Tipp: Klicke auf Drucken, um ein fertiges Arbeitsblatt zu erhalten!" : "טיפ: לחצו על כפתור ההדפסה כדי לקבל דף עבודה מוכן למדפסת!"}</p>
                 </div>
 
                 <section className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
                   <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                     <FileStack className="w-5 h-5 text-emerald-500" />
-                    הדפסת מספר תשחצים אקראיים
+                    {isGerman ? "Mehrere Zufallsrätsel drucken" : "הדפסת מספר תשחצים אקראיים"}
                   </h2>
                   <p className="text-sm text-stone-600 mb-4 leading-relaxed">
-                    יוצרים מספר תשחצים אקראיים בחלון חדש — כל תשחץ בדף נפרד. אפשר להדפיס או לשמור כ־PDF מתפריט המדפסת.
+                    {isGerman ? "Erstellt mehrere Rätsel in einem neuen Fenster. Jedes auf einer eigenen Seite." : "יוצרים מספר תשחצים אקראיים בחלון חדש — כל תשחץ בדף נפרד. אפשר להדפיס או לשמור כ־PDF מתפריט המדפסת."}
                   </p>
                   <div className="flex flex-col sm:flex-row sm:items-end gap-4 mb-4">
                     <label className="flex flex-col gap-1.5 flex-1">
-                      <span className="text-xs font-semibold text-stone-500">כמה תשחצים?</span>
+                      <span className="text-xs font-semibold text-stone-500">{isGerman ? "Wie viele Rätsel?" : "כמה תשחצים?"}</span>
                       <input
                         type="number"
                         min={1}
@@ -534,7 +547,7 @@ export default function App() {
                         className="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-stone-800 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-200"
                       />
                     </label>
-                    <span className="text-xs text-stone-400 pb-2">עד {BULK_PRINT_MAX}</span>
+                    <span className="text-xs text-stone-400 pb-2">{isGerman ? `Bis zu ${BULK_PRINT_MAX}` : `עד ${BULK_PRINT_MAX}`}</span>
                   </div>
                   <label className="flex items-center gap-3 mb-4 cursor-pointer">
                     <input
@@ -543,7 +556,7 @@ export default function App() {
                       onChange={(e) => setBulkIncludeSolutions(e.target.checked)}
                       className="w-4 h-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
                     />
-                    <span className="text-sm text-stone-700">להוסיף דפי פתרון (אחרי כל דפי התשחצים)</span>
+                    <span className="text-sm text-stone-700">{isGerman ? "Lösungsblätter hinzufügen" : "להוסיף דפי פתרון (אחרי כל דפי התשחצים)"}</span>
                   </label>
                   {bulkError && (
                     <p className="text-sm text-red-600 mb-3" role="alert">
@@ -556,7 +569,7 @@ export default function App() {
                     className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-stone-800 hover:bg-stone-900 text-white font-bold text-sm transition-all active:scale-[0.98]"
                   >
                     <Printer className="w-4 h-4" />
-                    צור קובץ להדפסה
+                    {isGerman ? "Druckdatei erstellen" : "צור קובץ להדפסה"}
                   </button>
                 </section>
               </div>
@@ -567,7 +580,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="py-10 text-center text-stone-400 text-xs print:hidden">
-        <p>© {new Date().getFullYear()} משחקי למידה לכיתה א' - לומדים בכיף</p>
+        <p>© {new Date().getFullYear()} {isGerman ? "Lernspiele für 1. Klasse - Lernen mit Spaß" : "משחקי למידה לכיתה א' - לומדים בכיף"}</p>
       </footer>
 
       {/* Print Styles */}

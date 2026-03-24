@@ -5,6 +5,10 @@ import confetti from 'canvas-confetti';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { WORD_LIST, WordInfo } from './words';
+import { GERMAN_WORD_LIST } from './wordsGerman';
+
+const isGerman = typeof window !== 'undefined' && (window.location.pathname.includes('/german') || window.location.hash.includes('/german'));
+const activeWordList = isGerman ? GERMAN_WORD_LIST : WORD_LIST;
 import { generateIcon } from './services/imageService';
 import { getFluentEmojiUrl } from './constants/iconMapping';
 
@@ -31,7 +35,7 @@ export default function MemoryGame() {
     const newGame = useCallback(() => {
         // Filter WORD_LIST to only include words that have a high-quality fluent emoji mapping
         // and ensure we don't have duplicate Hebrew words in the pool
-        const uniqueWords = Array.from(new Map(WORD_LIST.map(w => [w.word, w])).values());
+        const uniqueWords = Array.from(new Map(activeWordList.map(w => [w.word, w])).values());
         const availableWords = uniqueWords.filter(w => !!getFluentEmojiUrl(w.label));
 
         // Pick 12 random words for 24 cards
@@ -104,7 +108,7 @@ export default function MemoryGame() {
     if (cards.length === 0) return null;
 
     return (
-        <div className="flex flex-col items-center gap-4 w-full h-[calc(100dvh-12rem)] sm:h-[calc(100dvh-16rem)] max-w-5xl mx-auto px-1 sm:px-3 pb-2" dir="rtl">
+        <div className="flex flex-col items-center gap-4 w-full h-[calc(100dvh-12rem)] sm:h-[calc(100dvh-16rem)] max-w-5xl mx-auto px-1 sm:px-3 pb-2" dir={isGerman ? "ltr" : "rtl"}>
             {/* Header buttons */}
             <div className="flex items-center gap-3 w-full justify-center">
                 <button
@@ -112,7 +116,7 @@ export default function MemoryGame() {
                     className="flex items-center gap-2 px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-full text-sm font-semibold transition-all active:scale-95"
                 >
                     <RefreshCw className="w-4 h-4" />
-                    <span>משחק חדש</span>
+                    <span>{isGerman ? "Neues Spiel" : "משחק חדש"}</span>
                 </button>
                 <button
                     onClick={() => setShowHelp(!showHelp)}
@@ -122,7 +126,7 @@ export default function MemoryGame() {
                     )}
                 >
                     <HelpCircle className="w-4 h-4" />
-                    <span>עזרה</span>
+                    <span>{isGerman ? "Hilfe" : "עזרה"}</span>
                 </button>
             </div>
 
@@ -136,11 +140,11 @@ export default function MemoryGame() {
                         className="overflow-hidden w-full max-w-md mx-auto"
                     >
                         <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-sm text-stone-600 space-y-2">
-                            <p className="font-bold text-emerald-700">איך משחקים?</p>
+                            <p className="font-bold text-emerald-700">{isGerman ? "Wie spielt man?" : "איך משחקים?"}</p>
                             <ul className="space-y-1.5 list-disc list-inside">
-                                <li>הפכו שני קלפים בכל פעם.</li>
-                                <li>מצאו זוגות של תמונה והמילה המתאימה לה.</li>
-                                <li>זכרו איפה כל קלף נמצא, ונצחו את המשחק!</li>
+                                <li>{isGerman ? "Drehe immer zwei Karten um." : "הפכו שני קלפים בכל פעם."}</li>
+                                <li>{isGerman ? "Finde Paare aus Bild und passendem Wort." : "מצאו זוגות של תמונה והמילה המתאימה לה."}</li>
+                                <li>{isGerman ? "Merke dir die Positionen und gewinne das Spiel!" : "זכרו איפה כל קלף נמצא, ונצחו את המשחק!"}</li>
                             </ul>
                         </div>
                     </motion.div>
@@ -157,7 +161,7 @@ export default function MemoryGame() {
                         className="flex items-center gap-3 bg-emerald-500 text-white px-6 py-3 rounded-full shadow-xl"
                     >
                         <Trophy className="w-5 h-5" />
-                        <span className="font-bold text-lg">כל הכבוד! מצאתם את כל הזוגות!</span>
+                        <span className="font-bold text-lg">{isGerman ? "Gut gemacht! Du hast alle Paare gefunden!" : "כל הכבוד! מצאתם את כל הזוגות!"}</span>
                     </motion.div>
                 )}
             </AnimatePresence>
