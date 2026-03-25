@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { RefreshCw, Trophy, HelpCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -31,6 +31,18 @@ export default function MemoryGame({ isGerman }: { isGerman: boolean }) {
     const [isComplete, setIsComplete] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
     const [isLocked, setIsLocked] = useState(false);
+    const [isWaitingDismiss, setIsWaitingDismiss] = useState(false);
+    const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const dismissMismatch = useCallback(() => {
+        if (dismissTimerRef.current) {
+            clearTimeout(dismissTimerRef.current);
+            dismissTimerRef.current = null;
+        }
+        setFlippedIndices([]);
+        setIsLocked(false);
+        setIsWaitingDismiss(false);
+    }, []);
 
     const newGame = useCallback(() => {
         // Filter WORD_LIST to only include words that have a high-quality fluent emoji mapping
@@ -56,6 +68,11 @@ export default function MemoryGame({ isGerman }: { isGerman: boolean }) {
         setMatchedWords(new Set());
         setIsComplete(false);
         setIsLocked(false);
+        setIsWaitingDismiss(false);
+        if (dismissTimerRef.current) {
+            clearTimeout(dismissTimerRef.current);
+            dismissTimerRef.current = null;
+        }
     }, []);
 
     useEffect(() => {
@@ -72,6 +89,11 @@ export default function MemoryGame({ isGerman }: { isGerman: boolean }) {
     }, [matchedWords, cards.length, isComplete]);
 
     const handleCardClick = (index: number) => {
+        // If waiting for mismatch dismissal, any click dismisses early
+        if (isWaitingDismiss) {
+            dismissMismatch();
+            return;
+        }
         if (isLocked) return;
         if (flippedIndices.includes(index)) return; // already flipped
         if (matchedWords.has(cards[index].word.word)) return; // already matched
@@ -97,11 +119,11 @@ export default function MemoryGame({ isGerman }: { isGerman: boolean }) {
                     setIsLocked(false);
                 }, 500);
             } else {
-                // No match - turn face down again after 1.2s delay
-                setTimeout(() => {
-                    setFlippedIndices([]);
-                    setIsLocked(false);
-                }, 1200);
+                // No match - show for 5s, but any click dismisses early
+                setIsWaitingDismiss(true);
+                dismissTimerRef.current = setTimeout(() => {
+                    dismissMismatch();
+                }, 5000);
             }
         }
     };
