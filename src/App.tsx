@@ -297,13 +297,13 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex flex-col items-end gap-1.5">
+          <div className="flex flex-col items-end gap-1.5 min-w-0">
             {/* Tab switcher */}
-            <div className="flex bg-stone-100 rounded-full p-0.5">
+            <div className="flex bg-stone-100 rounded-full p-0.5 overflow-x-auto scrollbar-hide">
               <button
                 onClick={() => switchTab('crossword')}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-semibold transition-all",
+                  "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap flex-shrink-0",
                   activeTab === 'crossword' ? "bg-white shadow-sm text-stone-800" : "text-stone-500 hover:text-stone-700"
                 )}
               >
@@ -313,7 +313,7 @@ export default function App() {
               <button
                 onClick={() => switchTab('sudoku')}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-semibold transition-all",
+                  "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap flex-shrink-0",
                   activeTab === 'sudoku' ? "bg-white shadow-sm text-stone-800" : "text-stone-500 hover:text-stone-700"
                 )}
               >
@@ -323,7 +323,7 @@ export default function App() {
               <button
                 onClick={() => switchTab('memory')}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-semibold transition-all",
+                  "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap flex-shrink-0",
                   activeTab === 'memory' ? "bg-white shadow-sm text-stone-800" : "text-stone-500 hover:text-stone-700"
                 )}
               >
@@ -333,7 +333,7 @@ export default function App() {
               <button
                 onClick={() => switchTab('bingo')}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-semibold transition-all",
+                  "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap flex-shrink-0",
                   activeTab === 'bingo' ? "bg-white shadow-sm text-stone-800" : "text-stone-500 hover:text-stone-700"
                 )}
               >
@@ -343,7 +343,7 @@ export default function App() {
               <button
                 onClick={() => switchTab('balance')}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-semibold transition-all",
+                  "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap flex-shrink-0",
                   activeTab === 'balance' ? "bg-white shadow-sm text-stone-800" : "text-stone-500 hover:text-stone-700"
                 )}
               >
@@ -609,6 +609,11 @@ export default function App() {
         <p>© {new Date().getFullYear()} {isGerman ? "Lernspiele für 1. Klasse - Lernen mit Spaß" : "משחקי למידה לכיתה א' - לומדים בכיף"}</p>
       </footer>
 
+      {/* Utility Styles */}
+      <style>{`
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
       {/* Print Styles */}
       <style>{`
         @media print {
