@@ -5,6 +5,8 @@ import confetti from 'canvas-confetti';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
+import { trackEvent } from './analytics';
+
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -85,6 +87,7 @@ export default function MathBalanceGame({ isGerman }: { isGerman: boolean }) {
       setTilt(0);  // Balanced
       if (selectedWeight !== null && currentRightSum === leftSum && !isComplete) {
         setIsComplete(true);
+        trackEvent('game_complete', { game_name: 'balance' });
         confetti({
           particleCount: 150,
           spread: 70,

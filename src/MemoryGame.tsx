@@ -8,6 +8,7 @@ import { WORD_LIST, WordInfo } from './words';
 import { GERMAN_WORD_LIST } from './wordsGerman';
 
 import { generateIcon } from './services/imageService';
+import { trackEvent } from './analytics';
 import { getFluentEmojiUrl } from './constants/iconMapping';
 
 function cn(...inputs: ClassValue[]) {
@@ -65,6 +66,7 @@ export default function MemoryGame({ isGerman }: { isGerman: boolean }) {
         // 12 word pairs = 24 cards total
         if (cards.length > 0 && matchedWords.size === 12 && !isComplete) {
             setIsComplete(true);
+            trackEvent('game_complete', { game_name: 'memory' });
             confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
         }
     }, [matchedWords, cards.length, isComplete]);

@@ -8,6 +8,7 @@ import { WORD_LIST, WordInfo } from './words';
 import { GERMAN_WORD_LIST } from './wordsGerman';
 
 import { generateIcon } from './services/imageService';
+import { trackEvent } from './analytics';
 import { getFluentEmojiUrl } from './constants/iconMapping';
 
 function cn(...inputs: ClassValue[]) {
@@ -51,6 +52,7 @@ export default function BingoGame({ isGerman }: { isGerman: boolean }) {
     useEffect(() => {
         if (stampedIndices.size === 9 && !isComplete) {
             setIsComplete(true);
+            trackEvent('game_complete', { game_name: 'bingo' });
             confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
         }
     }, [stampedIndices, isComplete]);

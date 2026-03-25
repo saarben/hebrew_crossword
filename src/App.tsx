@@ -46,10 +46,17 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+import { trackEvent } from './analytics';
+
 type AppTab = 'crossword' | 'sudoku' | 'memory' | 'bingo' | 'balance';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('crossword');
+
+  const switchTab = useCallback((tab: AppTab) => {
+    setActiveTab(tab);
+    trackEvent('select_game', { game_name: tab });
+  }, []);
   const [crossword, setCrossword] = useState<CrosswordData | null>(null);
   const [userGrid, setUserGrid] = useState<string[][]>([]);
   const [isComplete, setIsComplete] = useState(false);
@@ -180,6 +187,7 @@ export default function App() {
 
     if (allCorrect && !anyEmpty) {
       setIsComplete(true);
+      trackEvent('game_complete', { game_name: 'crossword' });
       confetti({
         particleCount: 150,
         spread: 70,
@@ -203,7 +211,7 @@ export default function App() {
   };
 
   const handlePrint = () => {
-    console.log('Print button clicked');
+    trackEvent('print_puzzle', { type: 'single' });
     try {
       window.focus();
       // Small delay to ensure focus and layout are ready
@@ -217,6 +225,7 @@ export default function App() {
 
   const handleBulkPrint = () => {
     setBulkError(null);
+    trackEvent('print_puzzle', { type: 'bulk', count: bulkCount });
     // Open immediately on user gesture — delayed open + noopener often yields null in Chromium.
     const w = window.open('about:blank', '_blank');
     if (!w) {
@@ -292,7 +301,7 @@ export default function App() {
             {/* Tab switcher */}
             <div className="flex bg-stone-100 rounded-full p-0.5">
               <button
-                onClick={() => setActiveTab('crossword')}
+                onClick={() => switchTab('crossword')}
                 className={cn(
                   "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-semibold transition-all",
                   activeTab === 'crossword' ? "bg-white shadow-sm text-stone-800" : "text-stone-500 hover:text-stone-700"
@@ -302,7 +311,7 @@ export default function App() {
                 <span className="inline">{isGerman ? "Rätsel" : "תשחץ"}</span>
               </button>
               <button
-                onClick={() => setActiveTab('sudoku')}
+                onClick={() => switchTab('sudoku')}
                 className={cn(
                   "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-semibold transition-all",
                   activeTab === 'sudoku' ? "bg-white shadow-sm text-stone-800" : "text-stone-500 hover:text-stone-700"
@@ -312,7 +321,7 @@ export default function App() {
                 <span className="inline">{isGerman ? "Sudoku" : "סודוקו"}</span>
               </button>
               <button
-                onClick={() => setActiveTab('memory')}
+                onClick={() => switchTab('memory')}
                 className={cn(
                   "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-semibold transition-all",
                   activeTab === 'memory' ? "bg-white shadow-sm text-stone-800" : "text-stone-500 hover:text-stone-700"
@@ -322,7 +331,7 @@ export default function App() {
                 <span className="inline">{isGerman ? "Memory" : "זיכרון"}</span>
               </button>
               <button
-                onClick={() => setActiveTab('bingo')}
+                onClick={() => switchTab('bingo')}
                 className={cn(
                   "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-semibold transition-all",
                   activeTab === 'bingo' ? "bg-white shadow-sm text-stone-800" : "text-stone-500 hover:text-stone-700"
@@ -332,7 +341,7 @@ export default function App() {
                 <span className="inline">{isGerman ? "Bingo" : "בינגו"}</span>
               </button>
               <button
-                onClick={() => setActiveTab('balance')}
+                onClick={() => switchTab('balance')}
                 className={cn(
                   "flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm font-semibold transition-all",
                   activeTab === 'balance' ? "bg-white shadow-sm text-stone-800" : "text-stone-500 hover:text-stone-700"

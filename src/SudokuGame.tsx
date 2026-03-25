@@ -5,6 +5,7 @@ import confetti from 'canvas-confetti';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { generateSudoku, SudokuPuzzle } from './sudokuGenerator';
+import { trackEvent } from './analytics';
 import { generateIcon } from './services/imageService';
 import { WORD_LIST } from './words';
 import { GERMAN_WORD_LIST } from './wordsGerman';
@@ -85,6 +86,7 @@ export default function SudokuGame({ isGerman }: { isGerman: boolean }) {
     if (correct) {
       setIsComplete(true);
       setIsWrong(false);
+      trackEvent('game_complete', { game_name: 'sudoku' });
       confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
     } else {
       setIsWrong(true);
