@@ -607,6 +607,7 @@ export default function App() {
       {/* Footer */}
       <footer className="py-10 text-center text-stone-400 text-xs print:hidden">
         <p>© {new Date().getFullYear()} {isGerman ? "Lernspiele für 1. Klasse - Lernen mit Spaß" : "משחקי למידה לכיתה א' - לומדים בכיף"}</p>
+        <p className="mt-1 text-stone-300">v1.0</p>
       </footer>
 
       {/* Utility Styles */}
