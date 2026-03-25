@@ -297,7 +297,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex flex-col items-end gap-1.5">
             {/* Tab switcher */}
             <div className="flex bg-stone-100 rounded-full p-0.5">
               <button
@@ -351,8 +351,9 @@ export default function App() {
                 <span className="inline">{isGerman ? "Waage" : "מאזניים"}</span>
               </button>
             </div>
+            {/* Crossword action buttons — separate row so tabs don't shift */}
             {activeTab === 'crossword' && (
-              <>
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <a
                   href={window.location.href}
                   target="_blank"
@@ -387,7 +388,7 @@ export default function App() {
                   <Printer className="w-4 h-4" />
                   <span className="hidden sm:inline">{isGerman ? "Drucken" : "הדפסה"}</span>
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>
