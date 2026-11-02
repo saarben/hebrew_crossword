@@ -1,0 +1,45 @@
+name: Deploy site
+
+# Publishes the live site to GitHub Pages (the gh-pages branch) whenever
+# something lands on main. Replaces running `npm run deploy` by hand.
+# keep_files keeps the /preview/<branch>/ folders created by preview.yml.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-site
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci || npm install
+
+      - name: Type-check and test
+        run: |
+          npx tsc --noEmit
+          REQUIRE_AUDIO=1 npm test
+
+      - name: Build
+        run: npx vite build
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          keep_files: true
