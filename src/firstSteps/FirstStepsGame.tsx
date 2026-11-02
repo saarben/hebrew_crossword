@@ -674,21 +674,27 @@ function AnswerOption(props: React.Attributes & {
   );
 }
 
-/** Small grown-up area: voice warning and progress reset (press and hold). */
+/**
+ * Small grown-up area: voice warning and progress reset. Behind a tiny
+ * arithmetic gate (a 4-year-old can't pass it) instead of a long press, which
+ * touch browsers cancel or turn into a context menu.
+ */
 function ParentCorner({ voiceOk, onReset }: { voiceOk: boolean; onReset: () => void }) {
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [holding, setHolding] = useState(false);
-  const start = () => {
-    setHolding(true);
-    timer.current = setTimeout(() => {
-      setHolding(false);
-      onReset();
-    }, 2500);
+  const [step, setStep] = useState<'closed' | 'quiz' | 'confirm' | 'done'>('closed');
+  const [quiz, setQuiz] = useState({ a: 7, b: 6, options: [11, 13, 15] });
+
+  const open = () => {
+    const a = 6 + Math.floor(Math.random() * 6);
+    const b = 6 + Math.floor(Math.random() * 6);
+    const wrong = new Set<number>();
+    while (wrong.size < 2) {
+      const w = a + b + [-2, -1, 1, 2, 3][Math.floor(Math.random() * 5)];
+      if (w !== a + b) wrong.add(w);
+    }
+    setQuiz({ a, b, options: [a + b, ...wrong].sort(() => Math.random() - 0.5) });
+    setStep('quiz');
   };
-  const cancel = () => {
-    setHolding(false);
-    if (timer.current) clearTimeout(timer.current);
-  };
+
   return (
     <div className="px-4 pb-4 text-center text-sm text-slate-500 space-y-2">
       {!voiceOk && (
@@ -696,15 +702,51 @@ function ParentCorner({ voiceOk, onReset }: { voiceOk: boolean; onReset: () => v
           להורים: לא זוהה קול בעברית במכשיר, ייתכן שהמשחק לא ידבר. אפשר להתקין קול עברי בהגדרות המכשיר (שפה וקלט ← טקסט לדיבור).
         </p>
       )}
-      <button
-        onPointerDown={start}
-        onPointerUp={cancel}
-        onPointerLeave={cancel}
-        onContextMenu={(e) => e.preventDefault()}
-        className={`underline ${holding ? 'text-red-600' : ''}`}
-      >
-        {holding ? 'ממשיכים ללחוץ לאיפוס…' : 'להורים: לחיצה ארוכה לאיפוס ההתקדמות'}
+      {step === 'done' && <p className="text-emerald-700 font-bold text-base">ההתקדמות אופסה ✓</p>}
+      <button onClick={open} className="underline px-4 py-2">
+        להורים: איפוס ההתקדמות
       </button>
+
+      {(step === 'quiz' || step === 'confirm') && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" dir="rtl">
+          <div className="bg-white rounded-3xl shadow-2xl p-6 max-w-sm w-full text-slate-700 space-y-4">
+            {step === 'quiz' ? (
+              <>
+                <p className="text-lg font-bold">שאלה להורים: כמה זה {quiz.a} + {quiz.b}?</p>
+                <div className="flex gap-3 justify-center">
+                  {quiz.options.map((o) => (
+                    <button
+                      key={o}
+                      onClick={() => (o === quiz.a + quiz.b ? setStep('confirm') : setStep('closed'))}
+                      className="w-20 h-16 rounded-2xl bg-slate-100 text-2xl font-bold active:scale-95"
+                    >
+                      {o}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-lg font-bold">למחוק את כל ההתקדמות, הכוכבים והמדבקות?</p>
+                <div className="flex gap-3 justify-center">
+                  <button
+                    onClick={() => {
+                      onReset();
+                      setStep('done');
+                    }}
+                    className="px-5 py-3 rounded-2xl bg-red-500 text-white font-bold text-lg active:scale-95"
+                  >
+                    כן, לאפס
+                  </button>
+                  <button onClick={() => setStep('closed')} className="px-5 py-3 rounded-2xl bg-slate-200 font-bold text-lg active:scale-95">
+                    ביטול
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
