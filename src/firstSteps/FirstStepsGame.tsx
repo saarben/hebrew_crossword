@@ -20,15 +20,14 @@ import {
   stat,
 } from './engine';
 import { clearProfile, loadProfile, saveProfile } from './storage';
-import { hasHebrewVoice, onVoicesReady, setSpeechEnabled, speak, stopSpeaking } from './speech';
+import { hasHebrewVoice, hasRecordedAudio, loadAudioManifest, onVoicesReady, setSpeechEnabled, speak, stopSpeaking } from './speech';
+import { PRAISE, RETRY, ROUND_DONE, ROUND_DONE_STICKER, againLine, hintLine, likeLine, nameLine } from './phrases';
 import { setSfxEnabled, sfx } from './sfx';
 import { trackEvent } from '../analytics';
 
 type Screen = 'home' | 'lesson' | 'play' | 'roundEnd' | 'letters' | 'stickers';
 
 const STICKERS = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🦆', '🦉', '🦋', '🐢', '🐙', '🐬'];
-const PRAISE = ['כל הכבוד!', 'יופי!', 'מעולה!', 'אלוף!', 'נכון מאוד!', 'וואו!', 'מצוין!'];
-const RETRY = ['לא נורא, נסה שוב', 'כמעט! נסה עוד פעם', 'אופס, נסה שוב'];
 const CARD_COLORS = ['#FF9AA2', '#FFD166', '#7EE0B0', '#7DC8FF', '#C3B1FF', '#FFB3DE'];
 
 const pick = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
@@ -131,7 +130,8 @@ export default function FirstStepsGame() {
   }, [profile.soundOn]);
 
   useEffect(() => {
-    const off = onVoicesReady(() => setVoiceOk(hasHebrewVoice()));
+    void loadAudioManifest().then(() => setVoiceOk(hasRecordedAudio() || hasHebrewVoice()));
+    const off = onVoicesReady(() => setVoiceOk(hasRecordedAudio() || hasHebrewVoice()));
     return () => {
       off();
       run.current++;
@@ -198,7 +198,7 @@ export default function FirstStepsGame() {
     if (screen !== 'play' || !q || phase !== 'asking') return;
     const say = () => {
       const l = LETTER_BY_ID[q.target];
-      void speak(hint ? `זו האות ${l.speak}. לחץ עליה` : prompt(q).speak);
+      void speak(hint ? hintLine(l) : prompt(q).speak);
     };
     const first = setTimeout(say, hint ? 250 : 450);
     const idle = setInterval(say, 15000);
@@ -214,11 +214,7 @@ export default function FirstStepsGame() {
     const l = LETTER_BY_ID[lesson.id];
     const t = setTimeout(
       () =>
-        void speak(
-          lesson.again
-            ? `בוא נכיר שוב את האות ${l.speak}. ${l.speak} כמו ${l.wordSpeak}`
-            : `זו האות ${l.speak}. ${l.speak} כמו ${l.wordSpeak}`,
-        ),
+        void speak([lesson.again ? againLine(l) : nameLine(l), likeLine(l)]),
       400,
     );
     return () => clearTimeout(t);
@@ -228,7 +224,7 @@ export default function FirstStepsGame() {
     if (screen === 'roundEnd' && summary) {
       sfx.fanfare();
       burst(0.5, 0.35, true);
-      void speak(summary.newSticker ? 'כל הכבוד! קיבלת מדבקה חדשה!' : 'כל הכבוד! סיימת סיבוב!');
+      void speak(summary.newSticker ? ROUND_DONE_STICKER : ROUND_DONE);
     }
   }, [screen, summary]);
 
@@ -243,9 +239,9 @@ export default function FirstStepsGame() {
       burstAt(e);
       const res = recordCorrect(profileRef.current, q, wrongRef.current.length);
       commit(res.profile);
-      const reinforce = q.type === 'word' || q.type === 'picture' ? `${l.speak} כמו ${l.wordSpeak}` : `זו האות ${l.speak}`;
+      const reinforce = q.type === 'word' || q.type === 'picture' ? likeLine(l) : nameLine(l);
       const my = ++run.current;
-      void Promise.all([speak(`${pick(PRAISE)} ${reinforce}`), wait(1500)]).then(() => {
+      void Promise.all([speak([pick(PRAISE), reinforce]), wait(1500)]).then(() => {
         if (my === run.current) advance();
       });
       return;
@@ -272,7 +268,7 @@ export default function FirstStepsGame() {
   const repeatPrompt = () => {
     if (!q) return;
     const l = LETTER_BY_ID[q.target];
-    void speak(hint ? `זו האות ${l.speak}. לחץ עליה` : prompt(q).speak);
+    void speak(hint ? hintLine(l) : prompt(q).speak);
   };
 
   const toggleSound = () => commit({ ...profileRef.current, soundOn: !profileRef.current.soundOn });
@@ -410,7 +406,7 @@ export default function FirstStepsGame() {
             initial={{ scale: 0.3, rotate: -20 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ type: 'spring', stiffness: 200, damping: 12 }}
-            onClick={() => void speak(`${l.speak}. ${l.speak} כמו ${l.wordSpeak}`)}
+            onClick={() => void speak(likeLine(l))}
             className="bg-white rounded-[3rem] shadow-xl flex items-center justify-center text-indigo-600"
             style={{ width: 'min(60vmin,340px)', height: 'min(60vmin,340px)', fontSize: 'min(42vmin,240px)', lineHeight: 1 }}
           >
@@ -559,7 +555,7 @@ export default function FirstStepsGame() {
                   disabled={!open}
                   onClick={() => {
                     sfx.tap();
-                    void speak(`${l.speak} כמו ${l.wordSpeak}`);
+                    void speak(likeLine(l));
                   }}
                   className={`aspect-square rounded-3xl shadow flex flex-col items-center justify-center active:scale-95 ${
                     open ? 'bg-white text-indigo-600' : 'bg-white/40 text-slate-400'

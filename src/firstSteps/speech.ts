@@ -45,17 +45,56 @@ export function setSpeechEnabled(on: boolean) {
 export function stopSpeaking() {
   token++;
   synth()?.cancel();
+  player?.pause();
 }
 
-/**
- * Speak `text`. Resolves when finished (or after a safety timeout, since some
- * engines never fire `onend`). Starting a new utterance cancels the old one.
- */
-export function speak(text: string, opts: { rate?: number; pitch?: number } = {}): Promise<void> {
+// ---- pre-generated audio (public/audio/first-steps) ----------------------
+// Sentences are mapped to mp3 files by a manifest written by
+// scripts/generate-first-steps-audio.py. Anything missing falls back to the
+// browser's own speech synthesis.
+let manifest: Record<string, string> | null = null;
+let manifestLoad: Promise<void> | null = null;
+const AUDIO_DIR = `${import.meta.env.BASE_URL}audio/first-steps/`;
+// One reusable element: once a tap has unlocked it, iOS lets us keep using it.
+let player: HTMLAudioElement | null = null;
+
+export function loadAudioManifest(): Promise<void> {
+  manifestLoad ??= fetch(`${AUDIO_DIR}manifest.json`)
+    .then((r) => (r.ok ? r.json() : null))
+    .then((m) => {
+      manifest = m && typeof m === 'object' ? m : null;
+    })
+    .catch(() => {
+      manifest = null;
+    });
+  return manifestLoad;
+}
+
+export function hasRecordedAudio(): boolean {
+  return !!manifest && Object.keys(manifest).length > 0;
+}
+
+function playFile(file: string, my: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    try {
+      player ??= new Audio();
+      const a = player;
+      a.onended = () => resolve(true);
+      a.onerror = () => resolve(false);
+      a.src = AUDIO_DIR + file;
+      const started = a.play();
+      if (started) started.catch(() => resolve(false));
+      // safety net if neither event ever fires
+      setTimeout(() => resolve(my === token), 15000);
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
+function synthOne(text: string, opts: { rate?: number; pitch?: number }): Promise<void> {
   const s = synth();
-  const my = ++token;
-  if (!s || !enabled) return new Promise((r) => setTimeout(r, Math.min(2500, 600 + text.length * 70)));
-  s.cancel();
+  if (!s) return new Promise((r) => setTimeout(r, Math.min(2500, 600 + text.length * 70)));
   return new Promise((resolve) => {
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'he-IL';
@@ -72,10 +111,34 @@ export function speak(text: string, opts: { rate?: number; pitch?: number } = {}
     u.onend = finish;
     u.onerror = finish;
     setTimeout(finish, 1500 + text.length * 160 + 800);
-    // Some engines glitch if speak() immediately follows cancel().
-    setTimeout(() => {
-      if (my === token) s.speak(u);
-      else finish();
-    }, 30);
+    s.speak(u);
   });
+}
+
+/**
+ * Say one sentence or several in a row. Resolves when finished; a newer call
+ * cancels the older one. Recorded audio is preferred, browser TTS is the fallback.
+ */
+export async function speak(
+  text: string | string[],
+  opts: { rate?: number; pitch?: number } = {},
+): Promise<void> {
+  const parts = Array.isArray(text) ? text : [text];
+  const my = ++token;
+  synth()?.cancel();
+  player?.pause();
+  if (!enabled) {
+    await new Promise((r) => setTimeout(r, Math.min(2500, 600 + parts.join(' ').length * 70)));
+    return;
+  }
+  await loadAudioManifest();
+  for (const part of parts) {
+    if (my !== token) return;
+    const file = manifest?.[part];
+    if (file && (await playFile(file, my))) continue;
+    if (my !== token) return;
+    await new Promise((r) => setTimeout(r, 30)); // some engines glitch right after cancel()
+    if (my !== token) return;
+    await synthOne(part, opts);
+  }
 }

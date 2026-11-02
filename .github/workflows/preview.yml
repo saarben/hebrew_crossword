@@ -1,0 +1,70 @@
+name: Branch preview
+
+# Every push to a claude/* branch is built and published to a public URL:
+#   https://<user>.github.io/hebrew_crossword/preview/<branch-name>/
+# The job also generates the Hebrew voice clips (free Microsoft neural voices)
+# and commits them to the branch, so no one has to run anything locally.
+
+on:
+  push:
+    branches: ['claude/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: preview-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: npm ci || npm install
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Generate Hebrew audio
+        run: |
+          pip install edge-tts
+          python scripts/generate-first-steps-audio.py
+
+      - name: Test (engine + audio coverage)
+        run: REQUIRE_AUDIO=1 npm test
+
+      - name: Save generated audio to the branch
+        run: |
+          git add public/audio
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Generate first-steps Hebrew audio"
+            git push
+          fi
+
+      - name: Build
+        run: |
+          SLUG=$(echo "${GITHUB_REF_NAME}" | tr '/' '-')
+          echo "SLUG=$SLUG" >> "$GITHUB_ENV"
+          VITE_BASE="/${GITHUB_REPOSITORY#*/}/preview/$SLUG/" npx vite build
+
+      - name: Publish preview
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          destination_dir: preview/${{ env.SLUG }}
+          keep_files: true
