@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "deploy": "npm run build && gh-pages -d dist --dotfiles",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "tsx --test scripts/first-steps.test.ts",
+    "audio": "python3 scripts/generate-first-steps-audio.py"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",

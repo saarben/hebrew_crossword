@@ -6,7 +6,8 @@ import {defineConfig} from 'vite';
 // Project Pages URL: https://<user>.github.io/hebrew_crossword/ — assets must load under /hebrew_crossword/
 export default defineConfig(({command}) => {
   return {
-    base: command === 'serve' ? '/' : '/hebrew_crossword/',
+    // VITE_BASE lets CI publish branch previews under /hebrew_crossword/preview/<branch>/
+    base: command === 'serve' ? '/' : process.env.VITE_BASE || '/hebrew_crossword/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
