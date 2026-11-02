@@ -136,3 +136,115 @@ test('recorded audio covers every phrase the game can say', (t) => {
     assert.ok(stat.size > 1500, `audio too small: ${phrase}`);
   }
 });
+
+// ---------------------------------------------------------------- drawing game
+import { STROKES } from '../src/firstSteps/strokes';
+import { begin, createTracer, end, move, moveSegment, resample } from '../src/firstSteps/tracer';
+import {
+  DRAW_ORDER, modeFor, newDrawProfile, pickDrawLetter, radiusFor, recordDraw, starsFor,
+} from '../src/firstSteps/drawEngine';
+import type { Pt } from '../src/firstSteps/strokes';
+
+/** Simulate a finger following every stroke exactly. */
+function traceAll(strokes: Pt[][], radius = 9, jitter = 0) {
+  const t = createTracer(strokes, radius);
+  let last = '';
+  for (const s of strokes) {
+    const pts = resample(s, 1.5).map(([x, y]) => [x + jitter, y - jitter] as Pt);
+    assert.ok(begin(t, pts[0]), 'must be able to start at the start dot');
+    for (let i = 1; i < pts.length; i++) last = moveSegment(t, pts[i - 1], pts[i]) === 'none' ? last : last;
+    end(t);
+  }
+  return t;
+}
+
+test('all 22 letters have valid strokes inside the box', () => {
+  assert.equal(Object.keys(STROKES).length, 22);
+  for (const id of DRAW_ORDER) {
+    const { strokes } = STROKES[id];
+    assert.ok(strokes.length >= 1 && strokes.length <= 3, id);
+    for (const s of strokes) {
+      assert.ok(s.length >= 2, id);
+      for (const [x, y] of s) assert.ok(x >= 5 && x <= 95 && y >= 5 && y <= 97, `${id} point out of box`);
+    }
+  }
+  assert.equal(new Set(DRAW_ORDER).size, 22);
+  assert.ok(DRAW_ORDER.every((id) => id in STROKES));
+});
+
+test('following every stroke exactly completes every letter, even with a wobbly finger', () => {
+  for (const id of DRAW_ORDER) {
+    assert.ok(traceAll(STROKES[id].strokes).done, `${id} perfect trace`);
+    assert.ok(traceAll(STROKES[id].strokes, 9, 4).done, `${id} wobbly trace`);
+  }
+});
+
+test('starting far from the start dot does not activate tracing', () => {
+  const t = createTracer(STROKES.bet.strokes);
+  assert.equal(begin(t, [90, 90]), false);
+  assert.equal(move(t, [60, 24]), 'none');
+  assert.equal(t.idx, 0);
+});
+
+test('scribbling over the letter out of order does not complete it', () => {
+  const t = createTracer(STROKES.shin.strokes);
+  // start on the start dot, then jump to the far end of the stroke and wiggle there
+  assert.ok(begin(t, STROKES.shin.strokes[0][0]));
+  for (let i = 0; i < 50; i++) move(t, [74, 22 + (i % 5)]);
+  assert.equal(t.done, false);
+  assert.equal(t.stroke, 0);
+});
+
+test('lifting the finger keeps progress; resuming must be near where you stopped', () => {
+  const stroke = STROKES.resh.strokes[0];
+  const t = createTracer([stroke]);
+  const pts = resample(stroke, 1.5);
+  begin(t, pts[0]);
+  for (let i = 1; i < Math.floor(pts.length / 2); i++) moveSegment(t, pts[i - 1], pts[i]);
+  const half = t.idx;
+  assert.ok(half > 5);
+  end(t);
+  assert.equal(begin(t, pts[0]), false, 'restarting at the start dot is too far from the traced end');
+  assert.equal(begin(t, pts[Math.floor(pts.length / 2)]), true);
+  assert.equal(t.idx, half);
+});
+
+test('wandering far off the path counts a stray once per excursion', () => {
+  const t = createTracer(STROKES.dalet.strokes);
+  begin(t, STROKES.dalet.strokes[0][0]);
+  assert.equal(move(t, [50, 70]), 'stray');
+  assert.equal(move(t, [52, 72]), 'none');
+  assert.equal(t.strays, 1);
+});
+
+test('draw progression: new letters first, unlock after success, struggle brings back the full guide', () => {
+  let p = newDrawProfile();
+  assert.equal(pickDrawLetter(p), 'vav');
+  assert.equal(modeFor(p, 'vav'), 'trace');
+  // a perfect first drawing raises the skill and moves on to the next new letter
+  p = recordDraw(p, 'vav', 0, false).profile;
+  assert.equal(modeFor(p, 'vav'), 'dots');
+  assert.equal(pickDrawLetter(p), 'yod');
+  // a messy attempt: no promotion, marked as struggling, guide + bigger tolerance
+  const messy = recordDraw(p, 'yod', 9, false);
+  assert.equal(messy.stars, 1);
+  assert.equal(modeFor(messy.profile, 'yod'), 'trace');
+  assert.ok(radiusFor('trace', true) > radiusFor('trace', false));
+  // letters all drawn at least decently -> the next letter unlocks
+  p = recordDraw(p, 'yod', 0, false).profile;
+  const r = recordDraw(p, 'resh', 0, false);
+  assert.equal(r.unlocked, 'dalet');
+  assert.equal(r.profile.unlocked, 4);
+  assert.deepEqual(r.profile.gallery, ['vav', 'yod', 'resh']);
+});
+
+test('a struggling letter is asked again far more often', () => {
+  let p = { ...newDrawProfile(), unlocked: 6 };
+  for (const id of DRAW_ORDER.slice(0, 6)) p = recordDraw(p, id, 0, false).profile;
+  p = { ...p, unlocked: 6, last: 'resh', letters: { ...p.letters, dalet: { ...p.letters.dalet, struggle: true, box: 0 } } };
+  let hits = 0;
+  for (let i = 0; i < 400; i++) if (pickDrawLetter(p, rng) === 'dalet') hits++;
+  assert.ok(hits > 400 * 0.3, `dalet picked ${hits}/400`);
+  assert.equal(starsFor(0, false), 3);
+  assert.equal(starsFor(0, true), 2);
+});
