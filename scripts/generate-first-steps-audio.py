@@ -19,12 +19,12 @@ def phrases():
     return json.loads(raw)
 
 
-async def make(sem, text, spoken, path, voice, rate):
+async def make(sem, text, spoken, path, voice, rate, pitch):
     import edge_tts
     async with sem:
         for attempt in range(4):
             try:
-                await edge_tts.Communicate(spoken, voice, rate=rate).save(str(path))
+                await edge_tts.Communicate(spoken, voice, rate=rate, pitch=pitch).save(str(path))
                 if path.stat().st_size > 500:
                     return
             except Exception as e:  # network hiccup: retry
@@ -37,6 +37,7 @@ async def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--voice", default="he-IL-HilaNeural", help="he-IL-HilaNeural (female) or he-IL-AvriNeural (male)")
     ap.add_argument("--rate", default="-12%", help="speaking speed; slower is better for a small child")
+    ap.add_argument("--pitch", default="+0Hz", help="e.g. +4Hz for a slightly brighter voice")
     ap.add_argument("--strip-niqqud", action="store_true", help="send plain letters (no vowel marks) to the voice")
     ap.add_argument("--force", action="store_true")
     a = ap.parse_args()
@@ -46,12 +47,12 @@ async def main():
     manifest, jobs = {}, []
     sem = asyncio.Semaphore(4)
     for t in texts:
-        name = hashlib.sha1(f"{a.voice}|{t}".encode()).hexdigest()[:12] + ".mp3"
+        name = hashlib.sha1(f"{a.voice}|{a.rate}|{a.pitch}|{a.strip_niqqud}|{t}".encode()).hexdigest()[:12] + ".mp3"
         manifest[t] = name
         path = OUT / name
         if a.force or not path.exists() or path.stat().st_size < 500:
             spoken = NIQQUD.sub("", t) if a.strip_niqqud else t
-            jobs.append(make(sem, t, spoken, path, a.voice, a.rate))
+            jobs.append(make(sem, t, spoken, path, a.voice, a.rate, a.pitch))
     print(f"{len(texts)} phrases, generating {len(jobs)} new clips with {a.voice}")
     await asyncio.gather(*jobs)
     (OUT / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8")

@@ -61,6 +61,11 @@ jobs:
           echo "SLUG=$SLUG" >> "$GITHUB_ENV"
           VITE_BASE="/${GITHUB_REPOSITORY#*/}/preview/$SLUG/" npx vite build
 
+      - name: Voice comparison page (listen and pick the most natural voice)
+        run: |
+          pip install gTTS
+          python scripts/generate-voice-samples.py dist/voice-samples
+
       - name: Publish preview
         uses: peaceiris/actions-gh-pages@v4
         with:
