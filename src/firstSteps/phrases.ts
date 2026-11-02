@@ -5,6 +5,8 @@
  */
 import { ALPHABET, LetterInfo } from './letters';
 import { QType, prompt } from './engine';
+import { soundsPhrases } from './soundsPhrases';
+import { wordPhrases } from './wordPhrases';
 
 export const PRAISE = ['כל הכבוד!', 'יופי!', 'מעולה!', 'אלוף!', 'נכון מאוד!', 'וואו!', 'מצוין!'];
 export const RETRY = ['לא נורא, נסה שוב', 'כמעט! נסה עוד פעם', 'אופס, נסה שוב'];
@@ -30,7 +32,7 @@ const DRAW_FIXED = [DRAW_YOUR_TURN, DRAW_DOTS, DRAW_FADED, DRAW_STRAY, DRAW_STAR
 const TYPES: QType[] = ['find', 'balloons', 'word', 'picture'];
 
 export function allPhrases(): string[] {
-  const out = new Set<string>([...PRAISE, ...RETRY, ROUND_DONE, ROUND_DONE_STICKER, ...DRAW_FIXED]);
+  const out = new Set<string>([...PRAISE, ...RETRY, ROUND_DONE, ROUND_DONE_STICKER, ...DRAW_FIXED, ...soundsPhrases(), ...wordPhrases()]);
   for (const l of ALPHABET) {
     [nameLine(l), likeLine(l), againLine(l), hintLine(l), drawWatchLine(l), drawDoneLine(l)].forEach((t) => out.add(t));
     for (const type of TYPES) out.add(prompt({ type, target: l.id, options: [] }).speak);
