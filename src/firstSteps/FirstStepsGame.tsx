@@ -30,8 +30,10 @@ import { BigButton, Mascot, StarsChip, burst, burstAt } from './ui';
 import DrawGame from './DrawGame';
 import SoundsGame from './SoundsGame';
 import WordGame from './WordGame';
+import FeedGame from './FeedGame';
+import { clearFeedProfile } from './feedStorage';
 
-type Screen = 'home' | 'lesson' | 'play' | 'roundEnd' | 'letters' | 'stickers' | 'draw' | 'sounds' | 'words';
+type Screen = 'home' | 'lesson' | 'play' | 'roundEnd' | 'letters' | 'stickers' | 'draw' | 'sounds' | 'words' | 'feed';
 
 const STICKERS = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🦆', '🦉', '🦋', '🐢', '🐙', '🐬'];
 const CARD_COLORS = ['#FF9AA2', '#FFD166', '#7EE0B0', '#7DC8FF', '#C3B1FF', '#FFB3DE'];
@@ -216,6 +218,7 @@ export default function FirstStepsGame() {
     clearDrawProfile();
     clearSoundsProfile();
     clearWordProfile();
+    clearFeedProfile();
     pendingLesson.current = null;
     commit(newProfile());
   };
@@ -327,6 +330,9 @@ export default function FirstStepsGame() {
             <BigButton color="bg-teal-500" className="text-3xl px-7 py-4" onClick={() => setScreen('words')}>
               🧩 בונים מילה
             </BigButton>
+            <BigButton color="bg-rose-500" className="text-3xl px-7 py-4" onClick={() => setScreen('feed')}>
+              🍽️ מאכילים מפלצת
+            </BigButton>
           </div>
           <div className="flex gap-4 mt-2">
             <BigButton color="bg-sky-500" className="text-2xl px-6 py-4" onClick={() => setScreen('letters')}>
@@ -354,6 +360,7 @@ export default function FirstStepsGame() {
   }
 
   if (screen === 'sounds') return <SoundsGame onExit={() => setScreen('home')} />;
+  if (screen === 'feed') return <FeedGame onExit={() => setScreen('home')} />;
   if (screen === 'words') return <WordGame onExit={() => setScreen('home')} />;
 
   if (screen === 'draw') {
