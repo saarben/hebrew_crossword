@@ -22,3 +22,11 @@ export function saveSoundsProfile(p: SoundsProfile) {
     /* storage unavailable: the game still works */
   }
 }
+
+export function clearSoundsProfile() {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    /* ignore */
+  }
+}
