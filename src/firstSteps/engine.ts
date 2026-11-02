@@ -90,6 +90,11 @@ export function stat(p: Profile, id: string): LetterStat {
   return p.letters[id] ?? { box: 0, seen: 0, firstTry: 0, wrong: 0, recentWrong: 0 };
 }
 
+/** Letters the child has actually mastered (not just unlocked). */
+export function lettersLearned(p: Profile): number {
+  return ALPHABET.filter((l) => stat(p, l.id).box >= MASTERED_BOX).length;
+}
+
 export function poolIds(p: Profile): string[] {
   return ALPHABET.slice(0, p.unlocked).map((l) => l.id);
 }

@@ -9,6 +9,7 @@ import {
   ROUND_LENGTH,
   STARS_PER_STICKER,
   finishRound,
+  lettersLearned,
   makeQuestion,
   markIntroduced,
   newProfile,
@@ -18,7 +19,9 @@ import {
   recordWrong,
   stat,
 } from './engine';
-import { clearProfile, loadProfile, saveProfile } from './storage';
+import { clearDrawProfile, clearProfile, loadProfile, saveProfile } from './storage';
+import { clearSoundsProfile } from './soundsStorage';
+import { clearWordProfile } from './wordStorage';
 import { hasHebrewVoice, hasRecordedAudio, loadAudioManifest, onVoicesReady, setSpeechEnabled, speak, stopSpeaking } from './speech';
 import { PRAISE, RETRY, ROUND_DONE, ROUND_DONE_STICKER, againLine, hintLine, likeLine, nameLine } from './phrases';
 import { setSfxEnabled, sfx } from './sfx';
@@ -208,7 +211,11 @@ export default function FirstStepsGame() {
   const toggleSound = () => commit({ ...profileRef.current, soundOn: !profileRef.current.soundOn });
 
   const reset = () => {
+    // "reset progress" wipes every First Steps game, not just this one
     clearProfile();
+    clearDrawProfile();
+    clearSoundsProfile();
+    clearWordProfile();
     pendingLesson.current = null;
     commit(newProfile());
   };
@@ -266,7 +273,7 @@ export default function FirstStepsGame() {
   );
 
   if (screen === 'home') {
-    const learned = Math.max(0, profile.unlocked - 1) + (stat(profile, ALPHABET[profile.unlocked - 1].id).box >= 2 ? 1 : 0);
+    const learned = lettersLearned(profile);
     const started = profile.stars > 0 || profile.introduced.length > 0;
     return shell(
       <>

@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   FOCUS_THRESHOLD, ROUND_LENGTH, finishRound, makeQuestion, markIntroduced, newProfile,
-  nextIntro, poolIds, prompt, recordCorrect, recordWrong, tierCap, MAX_TIER, TIER_OPTIONS,
+  nextIntro, poolIds, lettersLearned, prompt, recordCorrect, recordWrong, tierCap, MAX_TIER, TIER_OPTIONS,
 } from '../src/firstSteps/engine';
 import { ALPHABET } from '../src/firstSteps/letters';
 import { allPhrases } from '../src/firstSteps/phrases';
@@ -247,4 +247,13 @@ test('a struggling letter is asked again far more often', () => {
   assert.ok(hits > 400 * 0.3, `dalet picked ${hits}/400`);
   assert.equal(starsFor(0, false), 3);
   assert.equal(starsFor(0, true), 2);
+});
+
+test('letters learned counts mastered letters: 0 for a fresh or reset profile', () => {
+  assert.equal(lettersLearned(newProfile()), 0);
+  let p = newProfile();
+  const q = { type: 'find' as const, target: 'alef', options: ['alef', 'bet'] };
+  p = recordCorrect(recordCorrect(p, q, 0).profile, q, 0).profile; // two clean answers
+  assert.equal(lettersLearned(p), 1);
+  assert.equal(lettersLearned(newProfile()), 0);
 });
