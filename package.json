@@ -10,7 +10,7 @@
     "deploy": "npm run build && gh-pages -d dist --dotfiles",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "test": "tsx --test scripts/first-steps.test.ts",
+    "test": "tsx --test scripts/*.test.ts",
     "audio": "python3 scripts/generate-first-steps-audio.py"
   },
   "dependencies": {
