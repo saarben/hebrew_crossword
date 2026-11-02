@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import confetti from 'canvas-confetti';
 import { Home, Volume2, VolumeX, Lock } from 'lucide-react';
 import { ALPHABET, LETTER_BY_ID } from './letters';
 import {
@@ -24,83 +23,16 @@ import { hasHebrewVoice, hasRecordedAudio, loadAudioManifest, onVoicesReady, set
 import { PRAISE, RETRY, ROUND_DONE, ROUND_DONE_STICKER, againLine, hintLine, likeLine, nameLine } from './phrases';
 import { setSfxEnabled, sfx } from './sfx';
 import { trackEvent } from '../analytics';
+import { BigButton, Mascot, StarsChip, burst, burstAt } from './ui';
+import DrawGame from './DrawGame';
 
-type Screen = 'home' | 'lesson' | 'play' | 'roundEnd' | 'letters' | 'stickers';
+type Screen = 'home' | 'lesson' | 'play' | 'roundEnd' | 'letters' | 'stickers' | 'draw';
 
 const STICKERS = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🦆', '🦉', '🦋', '🐢', '🐙', '🐬'];
 const CARD_COLORS = ['#FF9AA2', '#FFD166', '#7EE0B0', '#7DC8FF', '#C3B1FF', '#FFB3DE'];
 
 const pick = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-
-function burst(x = 0.5, y = 0.5, big = false) {
-  try {
-    confetti({
-      particleCount: big ? 140 : 50,
-      spread: big ? 100 : 70,
-      startVelocity: big ? 45 : 32,
-      origin: { x, y },
-      zIndex: 9999,
-      disableForReducedMotion: true,
-    });
-  } catch {
-    /* confetti is decoration only */
-  }
-}
-
-function burstAt(e?: React.SyntheticEvent) {
-  const t = e?.currentTarget as HTMLElement | undefined;
-  if (!t) return burst();
-  const r = t.getBoundingClientRect();
-  burst((r.left + r.width / 2) / window.innerWidth, (r.top + r.height / 2) / window.innerHeight);
-}
-
-function Mascot({ size = 88, dance = false }: { size?: number; dance?: boolean }) {
-  return (
-    <motion.div
-      aria-hidden
-      style={{ fontSize: size, lineHeight: 1 }}
-      animate={dance ? { rotate: [-10, 10, -10], y: [0, -14, 0] } : { y: [0, -6, 0] }}
-      transition={{ repeat: Infinity, duration: dance ? 0.7 : 2.4, ease: 'easeInOut' }}
-    >
-      🦊
-    </motion.div>
-  );
-}
-
-function BigButton({
-  children,
-  onClick,
-  color = 'bg-emerald-500',
-  className = '',
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  color?: string;
-  className?: string;
-}) {
-  return (
-    <motion.button
-      whileTap={{ scale: 0.94 }}
-      onClick={() => {
-        sfx.tap();
-        onClick();
-      }}
-      className={`${color} text-white rounded-[2rem] px-8 py-4 text-3xl font-bold shadow-[0_8px_0_rgba(0,0,0,0.18)] active:shadow-[0_2px_0_rgba(0,0,0,0.18)] active:translate-y-1.5 ${className}`}
-    >
-      {children}
-    </motion.button>
-  );
-}
-
-function StarsChip({ stars }: { stars: number }) {
-  return (
-    <div className="flex items-center gap-1.5 bg-white/80 rounded-full px-4 py-2 text-2xl font-bold text-amber-600 shadow">
-      <span>⭐</span>
-      <span>{stars}</span>
-    </div>
-  );
-}
 
 export default function FirstStepsGame() {
   const [profile, setProfile] = useState<Profile>(() => loadProfile());
@@ -369,6 +301,16 @@ export default function FirstStepsGame() {
           >
             {started ? 'ממשיכים! ▶' : 'בואו נשחק! ▶'}
           </BigButton>
+          <BigButton
+            color="bg-orange-500"
+            className="text-4xl px-10 py-5"
+            onClick={() => {
+              trackEvent('first_steps_draw_open', {});
+              setScreen('draw');
+            }}
+          >
+            ✏️ מציירים אותיות
+          </BigButton>
           <div className="flex gap-4 mt-2">
             <BigButton color="bg-sky-500" className="text-2xl px-6 py-4" onClick={() => setScreen('letters')}>
               🔤 האותיות שלי
@@ -392,6 +334,10 @@ export default function FirstStepsGame() {
         <ParentCorner voiceOk={voiceOk} onReset={reset} />
       </>,
     );
+  }
+
+  if (screen === 'draw') {
+    return <DrawGame onExit={() => setScreen('home')} />;
   }
 
   if (screen === 'lesson' && lesson) {
