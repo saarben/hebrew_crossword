@@ -20,7 +20,8 @@ import {
   Grid3X3,
   PenLine,
   LayoutGrid,
-  Calculator
+  Calculator,
+  Home
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { clsx, type ClassValue } from 'clsx';
@@ -280,9 +281,13 @@ export default function App() {
       <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-stone-200 z-50 print:hidden">
         <div className="max-w-5xl mx-auto px-3 sm:px-6 py-2 sm:h-20 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-200">
-              <RefreshCw className="w-4 h-4 sm:w-6 sm:h-6" />
-            </div>
+            <a
+              href="#/"
+              aria-label={isGerman ? "Startseite" : "לדף הבית"}
+              className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-200 active:scale-95"
+            >
+              <Home className="w-4 h-4 sm:w-6 sm:h-6" />
+            </a>
             <div className="min-w-0">
               <h1 className="text-base sm:text-xl font-bold tracking-tight whitespace-nowrap truncate">{isGerman ? "Lernspiele für 1. Klasse" : "משחקי למידה לכיתה א'"}</h1>
               <div className="flex items-center gap-2">

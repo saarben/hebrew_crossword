@@ -1,1 +1,18 @@
 @import "tailwindcss";
+
+/* ---- Welcome page & "first steps" area (child-friendly, tablet-first) ---- */
+.fs-root {
+  font-family: 'Varela Round', 'Arial Hebrew', 'Heebo', Arial, sans-serif;
+  background: linear-gradient(180deg, #dff3ff 0%, #fdf2ff 55%, #fff6dd 100%);
+  color: #334155;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  overscroll-behavior: none;
+}
+.fs-root button,
+.fs-root a {
+  cursor: pointer;
+  touch-action: manipulation;
+}
