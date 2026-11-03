@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { RefreshCw, Trophy, HelpCircle } from 'lucide-react';
+import { RefreshCw, Trophy, HelpCircle, Lock } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -403,6 +403,7 @@ export default function SudokuGame({ isGerman }: { isGerman: boolean }) {
                 <li>{isGerman ? `Jedes farbige Quadrat (${blockSize}×${blockSize}) muss alle Bilder enthalten` : `כל ריבוע צבעוני (${blockSize}×${blockSize}) צריך להכיל את כל הציורים`}</li>
                 <li>{isGerman ? "Ziehe ein Bild in ein leeres Kästchen oder tippe auf ein Kästchen und dann auf ein Bild" : "גררו ציור מהמגש למשבצת ריקה, או לחצו על משבצת ואז על ציור"}</li>
                 <li>{isGerman ? "Tippe auf ein gesetztes Bild, um es zu entfernen" : "לחצו על ציור שכבר במשבצת כדי להסיר אותו"}</li>
+                <li>{isGerman ? "Graue Kästchen mit Schloss sind vorgegeben und können nicht verändert werden" : "משבצות אפורות עם מנעול הן קבועות, אי אפשר להזיז או להסיר אותן"}</li>
               </ul>
             </div>
           </motion.div>
@@ -471,9 +472,11 @@ export default function SudokuGame({ isGerman }: { isGerman: boolean }) {
                     }
                   }}
                   className={cn(
-                    "relative flex items-center justify-center transition-all duration-200 cursor-pointer overflow-hidden",
+                    "relative flex items-center justify-center transition-all duration-200 overflow-hidden",
+                    isGiven ? "cursor-not-allowed" : "cursor-pointer",
                     (!isGiven && cell >= 0) && "touch-none",
-                    boxColors[boxIdx],
+                    // Given (fixed) cells look clearly different from cells the player filled
+                    isGiven ? "bg-stone-300 shadow-[inset_0_0_0_2px_rgba(87,83,78,0.35)]" : boxColors[boxIdx],
                     // Borders for grid lines
                     c < totalSize - 1 && "border-l border-stone-200/50",
                     r < totalSize - 1 && "border-b border-stone-200/50",
@@ -496,13 +499,16 @@ export default function SudokuGame({ isGerman }: { isGerman: boolean }) {
                         "object-contain pointer-events-none select-none",
                         blockSize === 2 ? "w-[75%] h-[75%]" :
                           blockSize === 3 ? "w-[85%] h-[85%]" : "w-[90%] h-[90%]",
-                        isGiven && "drop-shadow-sm brightness-90",
+                        isGiven && "drop-shadow-sm",
                       )}
                       draggable={false}
                     />
                   )}
                   {isGiven && cell >= 0 && (
-                    <div className="absolute top-0.5 right-0.5 w-1 h-1 rounded-full bg-stone-300" />
+                    <Lock
+                      aria-label={isGerman ? "Feste Vorgabe" : "משבצת קבועה"}
+                      className="absolute top-0.5 right-0.5 w-2.5 h-2.5 sm:w-3 sm:h-3 text-stone-600/80 pointer-events-none"
+                    />
                   )}
                 </div>
               );
