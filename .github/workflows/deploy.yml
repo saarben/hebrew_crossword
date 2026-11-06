@@ -38,6 +38,35 @@ jobs:
         run: npx vite build
 
       - name: Publish to gh-pages
+        id: publish1
+        continue-on-error: true
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          keep_files: true
+
+      - name: Wait before retry 2 (another job just updated gh-pages)
+        if: steps.publish1.outcome == 'failure'
+        run: sleep 20
+
+      - name: Publish to gh-pages (retry 2)
+        id: publish2
+        if: steps.publish1.outcome == 'failure'
+        continue-on-error: true
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          keep_files: true
+
+      - name: Wait before retry 3 (another job just updated gh-pages)
+        if: steps.publish1.outcome == 'failure' && steps.publish2.outcome == 'failure'
+        run: sleep 20
+
+      - name: Publish to gh-pages (retry 3)
+        id: publish3
+        if: steps.publish1.outcome == 'failure' && steps.publish2.outcome == 'failure'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
