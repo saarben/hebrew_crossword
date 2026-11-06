@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Letter Stroke Editor</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Heebo:wght@500&family=Assistant:wght@600&family=Rubik:wght@500&family=Varela+Round&display=swap">
+<style>
+/* Layout: a drafting desk. Editor on top (canvas + controls), a grid of all 22 letters below, export at the bottom. */
+:root {
+  --bg: #f3f4f1;
+  --panel: #ffffff;
+  --panel-2: #eceee9;
+  --line: #d5d9d1;
+  --fg: #1d2420;
+  --muted: #5d675f;
+  --accent: #2c4fd6;
+  --accent-fg: #ffffff;
+  --pen: #e8731c;
+  --ok: #1f8a4c;
+  --bad: #c2392b;
+  --road: #dfe5f2;
+  --dash: #8fa0bf;
+  --glyph: #b9bfb5;
+  --s1: #2c4fd6; --s2: #b8337a; --s3: #1f8a4c; --s4: #b8860b;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-he: "Heebo", "Arial Hebrew", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #151a17; --panel: #1e2521; --panel-2: #262e29; --line: #36403a; --fg: #e8ece6; --muted: #98a399;
+    --accent: #7d96ff; --accent-fg: #0e1430; --pen: #ff9a4d; --ok: #55c283; --bad: #ff7a6b;
+    --road: #2b3447; --dash: #6f7f9e; --glyph: #4a554d;
+    --s1: #7d96ff; --s2: #f08ac0; --s3: #55c283; --s4: #e3b341; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #151a17; --panel: #1e2521; --panel-2: #262e29; --line: #36403a; --fg: #e8ece6; --muted: #98a399;
+  --accent: #7d96ff; --accent-fg: #0e1430; --pen: #ff9a4d; --ok: #55c283; --bad: #ff7a6b;
+  --road: #2b3447; --dash: #6f7f9e; --glyph: #4a554d;
+  --s1: #7d96ff; --s2: #f08ac0; --s3: #55c283; --s4: #e3b341; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-ui); font-size: 15px; line-height: 1.45;
+  padding-block: 20px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+h1 { font-size: 1.5rem; line-height: 1.2; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font-size: 1rem; margin: 0; letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 70ch; }
+.lead b { color: var(--fg); font-weight: 600; }
+header { display: flex; flex-direction: column; gap: 10px; }
+.top-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, select, input[type="text"], input[type="number"], textarea {
+  font: inherit; color: inherit;
+}
+.btn {
+  appearance: none; border: 1px solid var(--line); background: var(--panel); color: var(--fg); border-radius: 8px;
+  padding: 8px 12px; cursor: pointer; min-height: 40px; font-weight: 500; line-height: 1.2;
+}
+.btn:hover { background: var(--panel-2); }
+.btn:focus-visible, .card:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.danger { color: var(--bad); }
+.btn.sm { padding: 4px 8px; min-height: 32px; font-size: 0.85rem; }
+.btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.pill { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); }
+
+/* editor */
+#editor { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.ed-head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.ed-title { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.ed-title .big { font-family: var(--font-he); font-size: 2.4rem; line-height: 1; }
+.ed-body { display: grid; grid-template-columns: minmax(0, 540px) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 860px) { .ed-body { grid-template-columns: minmax(0, 1fr); } }
+.canvas-box { position: relative; width: 100%; aspect-ratio: 1; max-width: 100%; border-radius: 12px; border: 1px solid var(--line); overflow: hidden; background: var(--panel-2); touch-action: none; }
+.canvas-box svg { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; }
+.hint { font-size: 0.85rem; color: var(--muted); margin-top: 8px; }
+.side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 8px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.strokes { display: flex; flex-direction: column; gap: 6px; }
+.stroke-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; background: var(--bg); }
+.stroke-row.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.chip { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+.stroke-row .name { flex: 1; min-width: 90px; font-weight: 500; cursor: pointer; }
+.stroke-row .name small { font-family: var(--font-mono); color: var(--muted); font-weight: 400; }
+label.f { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+label.f span { min-width: 74px; color: var(--muted); }
+input[type="number"], input[type="text"], select, textarea {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; min-height: 36px;
+}
+input[type="number"] { width: 78px; font-family: var(--font-mono); }
+input[type="text"] { flex: 1; min-width: 0; }
+input[type="range"] { flex: 1; min-width: 80px; accent-color: var(--accent); }
+textarea { width: 100%; font-family: var(--font-mono); font-size: 0.8rem; min-height: 140px; resize: vertical; }
+.flag { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px dashed var(--line); border-radius: 10px; }
+.flag.on { border-color: var(--bad); }
+
+/* grid */
+.section-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; text-align: left; position: relative; min-width: 0; }
+.card:hover { border-color: var(--accent); }
+.card.current { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.card svg { width: 100%; aspect-ratio: 1; display: block; background: var(--panel-2); border-radius: 8px; }
+.card .meta { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.card .nm { font-weight: 600; font-family: var(--font-he); font-size: 1.05rem; }
+.card .nm small { font-family: var(--font-ui); font-weight: 400; color: var(--muted); font-size: 0.78rem; }
+.badges { display: flex; gap: 4px; flex-wrap: wrap; min-height: 20px; }
+.badge { font-size: 0.7rem; font-family: var(--font-mono); padding: 1px 6px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.badge.edit { color: var(--accent); border-color: var(--accent); }
+.badge.wrong { color: var(--bad); border-color: var(--bad); }
+.play { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); cursor: pointer; display: grid; place-items: center; font-size: 0.8rem; color: var(--fg); padding: 0; }
+.play:hover { background: var(--accent); color: var(--accent-fg); }
+
+/* svg parts */
+.road { fill: none; stroke: var(--road); stroke-linecap: round; stroke-linejoin: round; }
+.dash { fill: none; stroke: var(--dash); stroke-linecap: round; stroke-dasharray: 2 3; }
+.glyph { font-family: var(--font-he); fill: var(--glyph); text-anchor: middle; pointer-events: none; }
+.start { fill: var(--ok); stroke: #fff; }
+.startnum { fill: #fff; font-family: var(--font-ui); font-weight: 700; text-anchor: middle; pointer-events: none; }
+.demo-ink { fill: none; stroke: var(--pen); stroke-linecap: round; stroke-linejoin: round; }
+.pen { pointer-events: none; }
+.gridline { stroke: var(--line); stroke-width: 0.25; opacity: 0.7; }
+.handle { cursor: grab; }
+.handle:active { cursor: grabbing; }
+
+#toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 9px 16px; border-radius: 999px; font-size: 0.9rem; z-index: 50; max-width: calc(100% - 32px); }
+.status-line { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); }
+details summary { cursor: pointer; font-weight: 500; }
+.export-box { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Letter Stroke Editor</h1>
+    <p class="lead">This is how the drawing game teaches each letter. <b>Play</b> shows the demo the child sees first (an orange pen draws each stroke in order). The grey road with the green numbered dot is what the child traces afterwards. Click any letter to fix its strokes: drag a point, drag on a line to add one, reverse or reorder strokes. Edits save in this browser. When you are done, copy the changes and paste them back to me.</p>
+    <div class="top-actions">
+      <button class="btn" id="playAll">Play all demos</button>
+      <button class="btn primary" id="copyChanges">Copy my changes</button>
+      <button class="btn" id="jumpExport">Export / import</button>
+      <span class="pill" id="summary"></span>
+    </div>
+  </header>
+
+  <section id="editor" hidden aria-label="Editor">
+    <div class="ed-head">
+      <div class="ed-title">
+        <span class="big" id="edChar"></span>
+        <div><b id="edName"></b><div class="pill" id="edSub"></div></div>
+      </div>
+      <div class="row">
+        <button class="btn sm" id="prevL" aria-label="Previous letter">&larr; Prev</button>
+        <button class="btn sm" id="nextL" aria-label="Next letter">Next &rarr;</button>
+        <button class="btn sm" id="closeEd">Close</button>
+      </div>
+    </div>
+    <div class="ed-body">
+      <div>
+        <div class="canvas-box"><svg id="edSvg" viewBox="0 0 100 100" aria-label="Stroke canvas"></svg></div>
+        <p class="hint" id="edHint">Drag a point to move it. Drag along a line to add a point. Select a point to nudge it with the arrow keys or delete it.</p>
+      </div>
+      <div class="side">
+        <div class="group">
+          <h2>Strokes (drawing order)</h2>
+          <div class="strokes" id="strokeList"></div>
+          <div class="row">
+            <button class="btn sm" id="addStroke">+ Add stroke</button>
+            <button class="btn sm primary" id="finishStroke" hidden>Finish stroke</button>
+            <button class="btn sm" id="cancelStroke" hidden>Cancel</button>
+          </div>
+        </div>
+        <div class="group">
+          <h2>Selected point</h2>
+          <div class="row" id="ptRow">
+            <label class="f"><span>x</span><input type="number" id="ptX" min="0" max="100" step="0.5"></label>
+            <label class="f"><span>y</span><input type="number" id="ptY" min="0" max="100" step="0.5"></label>
+            <button class="btn sm danger" id="delPt">Delete point</button>
+          </div>
+        </div>
+        <div class="group">
+          <h2>Tools</h2>
+          <div class="row">
+            <button class="btn sm" id="undo">Undo</button>
+            <button class="btn sm" id="redo">Redo</button>
+            <button class="btn sm" id="playOne">&#9654; Play demo</button>
+            <button class="btn sm danger" id="resetOne">Reset letter</button>
+          </div>
+          <label class="f"><span>Snap</span>
+            <select id="snap"><option value="0">Off</option><option value="0.5">0.5</option><option value="1" selected>1</option><option value="2">2</option><option value="5">5</option></select>
+          </label>
+        </div>
+        <div class="group">
+          <h2>Reference letter</h2>
+          <label class="f"><span>Show</span><input type="checkbox" id="showGlyph" checked></label>
+          <label class="f"><span>Font</span>
+            <select id="font">
+              <option value="Heebo">Heebo (clean sans)</option>
+              <option value="Varela Round">Varela Round (the app font)</option>
+              <option value="Assistant">Assistant</option>
+              <option value="Rubik">Rubik</option>
+            </select>
+          </label>
+          <label class="f"><span>Size</span><input type="range" id="gSize" min="40" max="120" value="82"></label>
+          <label class="f"><span>Baseline</span><input type="range" id="gY" min="50" max="100" value="78"></label>
+        </div>
+        <div class="flag" id="flagBox">
+          <label class="f"><input type="checkbox" id="flagWrong"> <b>Mark as wrong</b> (even if I do not fix it)</label>
+          <input type="text" id="flagNote" placeholder="What is wrong? e.g. the foot should go left">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>All 22 letters</h2>
+      <span class="status-line">Alphabet order. Numbers show the order in which the app unlocks letters for drawing.</span>
+    </div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section class="export-box" id="exportBox">
+    <h2>Export / import</h2>
+    <p class="lead">Copy my changes lists only the letters you edited or marked wrong. Copy strokes.ts block gives all 22 letters in the format the game's code uses.</p>
+    <div class="row">
+      <button class="btn primary" id="copyChanges2">Copy my changes</button>
+      <button class="btn" id="copyTs">Copy strokes.ts block (all letters)</button>
+      <button class="btn danger" id="resetAll">Reset everything</button>
+    </div>
+    <textarea id="out" readonly aria-label="Export text" placeholder="The exported text appears here. Select it manually if the copy button is blocked."></textarea>
+    <details>
+      <summary>Import (restore a previous export)</summary>
+      <div class="group" style="margin-top:8px">
+        <textarea id="imp" aria-label="Import text" placeholder="Paste exported JSON here"></textarea>
+        <div class="row"><button class="btn" id="doImport">Load</button></div>
+      </div>
+    </details>
+  </section>
+</div>
+<div id="toast" role="status" hidden></div>
+
+<script>
+var DATA = {"letters":[{"id":"alef","char":"א","name":"אלף","word":"אריה","emoji":"🦁","drawOrder":22},{"id":"bet","char":"ב","name":"בית","word":"בננה","emoji":"🍌","drawOrder":7},{"id":"gimel","char":"ג","name":"גימל","word":"גזר","emoji":"🥕","drawOrder":9},{"id":"dalet","char":"ד","name":"דלת","word":"דג","emoji":"🐟","drawOrder":4},{"id":"he","char":"ה","name":"הא","word":"הליקופטר","emoji":"🚁","drawOrder":5},{"id":"vav","char":"ו","name":"וו","word":"ורד","emoji":"🌹","drawOrder":1},{"id":"zayin","char":"ז","name":"זין","word":"זברה","emoji":"🦓","drawOrder":13},{"id":"het","char":"ח","name":"חית","word":"חתול","emoji":"🐱","drawOrder":11},{"id":"tet","char":"ט","name":"טית","word":"טרקטור","emoji":"🚜","drawOrder":14},{"id":"yod","char":"י","name":"יוד","word":"יונה","emoji":"🕊️","drawOrder":2},{"id":"kaf","char":"כ","name":"כף","word":"כלב","emoji":"🐶","drawOrder":8},{"id":"lamed","char":"ל","name":"למד","word":"לב","emoji":"❤️","drawOrder":10},{"id":"mem","char":"מ","name":"מם","word":"מטוס","emoji":"✈️","drawOrder":16},{"id":"nun","char":"נ","name":"נון","word":"נחש","emoji":"🐍","drawOrder":6},{"id":"samekh","char":"ס","name":"סמך","word":"סוס","emoji":"🐴","drawOrder":15},{"id":"ayin","char":"ע","name":"עין","word":"עוגה","emoji":"🎂","drawOrder":18},{"id":"pe","char":"פ","name":"פא","word":"פיל","emoji":"🐘","drawOrder":17},{"id":"tsadi","char":"צ","name":"צדי","word":"צפרדע","emoji":"🐸","drawOrder":19},{"id":"qof","char":"ק","name":"קוף","word":"קוף","emoji":"🐵","drawOrder":20},{"id":"resh","char":"ר","name":"ריש","word":"רכבת","emoji":"🚆","drawOrder":3},{"id":"shin","char":"ש","name":"שין","word":"שמש","emoji":"☀️","drawOrder":21},{"id":"tav","char":"ת","name":"תו","word":"תפוח","emoji":"🍎","drawOrder":12}],"strokes":{"alef":[[[76,16],[24,84]],[[26,18],[36,40],[50,52]],[[74,84],[64,62],[52,50]]],"bet":[[[24,24],[66,24],[76,32],[76,72],[72,78],[22,78]]],"gimel":[[[34,22],[66,22],[74,30],[74,76],[68,80]],[[24,80],[56,52]]],"dalet":[[[24,22],[76,22]],[[64,22],[64,80]]],"he":[[[24,22],[66,22],[76,30],[76,80]],[[30,40],[30,80]]],"vav":[[[52,18],[52,82]]],"zayin":[[[34,22],[66,22]],[[50,22],[50,80]]],"het":[[[24,80],[24,28],[32,22],[68,22],[76,30],[76,80]]],"tet":[[[24,22],[30,22],[30,64],[40,78],[66,78],[76,66],[76,22]],[[76,42],[56,42],[50,52]]],"yod":[[[38,24],[58,24],[58,56]]],"kaf":[[[70,24],[34,24],[24,34],[24,66],[34,76],[70,76]]],"lamed":[[[28,16],[52,16],[56,24],[56,44],[34,62],[34,80]]],"mem":[[[66,22],[36,22],[26,32],[26,80]],[[76,30],[76,80]]],"nun":[[[44,22],[66,22],[74,30],[74,70],[66,78],[24,78]]],"samekh":[[[56,22],[34,22],[24,32],[24,68],[34,78],[66,78],[76,68],[76,32],[66,22],[56,22]]],"ayin":[[[72,22],[66,52],[52,64],[28,78]],[[28,22],[34,48],[50,62]]],"pe":[[[70,24],[34,24],[24,34],[24,66],[34,76],[72,76],[76,66]],[[52,26],[52,44],[62,52],[74,52]]],"tsadi":[[[26,24],[32,46],[48,60]],[[74,22],[70,54],[50,66],[46,80],[76,80]]],"qof":[[[24,24],[64,24],[74,32],[74,40]],[[74,40],[48,80]],[[38,52],[38,94]]],"resh":[[[24,22],[62,22],[72,30],[72,80]]],"shin":[[[26,22],[26,62],[36,76],[64,76],[74,62],[74,22]],[[50,22],[50,76]]],"tav":[[[22,26],[28,22],[68,22],[76,30],[76,80]],[[34,24],[34,70],[30,80],[22,80]]]}};
+(function () {
+  var LETTERS = DATA.letters, ORIG = DATA.strokes;
+  var STORE = 'letter-stroke-editor-v1';
+  var COLORS = ['var(--s1)', 'var(--s2)', 'var(--s3)', 'var(--s4)'];
+  var $ = function (id) { return document.getElementById(id); };
+  var clone = function (x) { return JSON.parse(JSON.stringify(x)); };
+
+  /* ---------- state ---------- */
+  var state = {};                 // id -> { strokes, flag, note }
+  var prefs = { font: 'Heebo', size: 82, y: 78, show: true, snap: 1 };
+  try {
+    var saved = JSON.parse(localStorage.getItem(STORE) || 'null');
+    if (saved) { state = saved.state || {}; prefs = Object.assign(prefs, saved.prefs || {}); }
+  } catch (e) {}
+  function persist() { try { localStorage.setItem(STORE, JSON.stringify({ state: state, prefs: prefs })); } catch (e) {} }
+  function ensure(id) { if (!state[id]) state[id] = { strokes: clone(ORIG[id]), flag: false, note: '' }; return state[id]; }
+  function strokesOf(id) { return state[id] ? state[id].strokes : ORIG[id]; }
+  function isEdited(id) { return !!state[id] && JSON.stringify(state[id].strokes) !== JSON.stringify(ORIG[id]); }
+  function isFlagged(id) { return !!state[id] && state[id].flag; }
+  function letter(id) { return LETTERS.find(function (l) { return l.id === id; }); }
+
+  var cur = null, selStroke = 0, selPt = null, adding = null;
+  var undoStack = {}, redoStack = {};
+
+  function snapshot(id) { (undoStack[id] = undoStack[id] || []).push(JSON.stringify(strokesOf(id))); if (undoStack[id].length > 100) undoStack[id].shift(); redoStack[id] = []; }
+
+  /* ---------- geometry (same resampling as the game) ---------- */
+  function resample(stroke, step) {
+    step = step || 2;
+    var out = [stroke[0]], carry = 0;
+    for (var i = 1; i < stroke.length; i++) {
+      var a = stroke[i - 1], b = stroke[i], len = Math.hypot(b[0] - a[0], b[1] - a[1]), t = step - carry;
+      while (t <= len) { out.push([a[0] + (b[0] - a[0]) * t / len, a[1] + (b[1] - a[1]) * t / len]); t += step; }
+      carry = len - (t - step);
+    }
+    var last = stroke[stroke.length - 1], lo = out[out.length - 1];
+    if (Math.hypot(lo[0] - last[0], lo[1] - last[1]) > 0.01) out.push(last);
+    return out;
+  }
+  function pathD(pts) { return 'M' + pts.map(function (p) { return p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' L'); }
+
+  /* ---------- svg building ---------- */
+  function glyphEl(l) {
+    return '<text class="glyph" x="50" y="' + prefs.y + '" font-size="' + prefs.size + '" style="font-family:\'' + prefs.font + '\', Heebo, Arial, sans-serif;font-weight:500">' + l.char + '</text>';
+  }
+  function guideSvg(id, opts) {
+    var l = letter(id), st = strokesOf(id), h = '';
+    if (opts.glyph && prefs.show) h += glyphEl(l);
+    st.forEach(function (s, i) { h += '<path class="road" d="' + pathD(s) + '" stroke-width="' + (opts.road || 14) + '"/>'; });
+    st.forEach(function (s, i) { h += '<path class="dash" d="' + pathD(s) + '" stroke-width="1.1"/>'; });
+    st.forEach(function (s, i) {
+      var p = s[0];
+      h += '<circle class="start" cx="' + p[0] + '" cy="' + p[1] + '" r="' + (opts.dot || 5) + '" stroke-width="1.2"/>' +
+           '<text class="startnum" x="' + p[0] + '" y="' + (p[1] + (opts.dot || 5) * 0.36) + '" font-size="' + (opts.dot || 5) * 1.2 + '">' + (i + 1) + '</text>';
+    });
+    return h;
+  }
+
+  /* ---------- demo animation (same pacing as the game: 38 ms per point, pause between strokes) ---------- */
+  var demoTokens = new WeakMap();
+  function playDemo(svg, id, dotSize, onDone) {
+    var layer = svg.querySelector('.demo');
+    if (!layer) return;
+    var token = {}; demoTokens.set(layer, token);
+    var paths = strokesOf(id).map(function (s) { return resample(s); });
+    var total = paths.reduce(function (n, p) { return n + p.length; }, 0) + (paths.length - 1) * 6;
+    var t0 = performance.now(), roadW = svg.dataset.road ? +svg.dataset.road : 14;
+    function frame(now) {
+      if (demoTokens.get(layer) !== token) return;
+      var k = Math.floor((now - t0) / 38);
+      if (k > total + 8) { layer.innerHTML = ''; if (onDone) onDone(); return; }
+      var left = k, si = 0;
+      while (si < paths.length - 1 && left >= paths[si].length + 6) { left -= paths[si].length + 6; si++; }
+      var html = '';
+      for (var i = 0; i < paths.length; i++) {
+        var n = i < si ? paths[i].length : i === si ? Math.min(left, paths[i].length) : 0;
+        if (n > 1) html += '<path class="demo-ink" d="' + pathD(paths[i].slice(0, n)) + '" stroke-width="' + (roadW - 3) + '"/>';
+      }
+      var pt = paths[si][Math.max(0, Math.min(left, paths[si].length) - 1)];
+      html += '<text class="pen" x="' + (pt[0] - 2) + '" y="' + (pt[1] - 1) + '" font-size="12">&#9999;&#65039;</text>';
+      layer.innerHTML = html;
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+  function stopDemo(svg) { var layer = svg.querySelector('.demo'); if (layer) { demoTokens.set(layer, {}); layer.innerHTML = ''; } }
+
+  /* ---------- grid ---------- */
+  function renderGrid() {
+    $('grid').innerHTML = LETTERS.map(function (l) {
+      var badges = (isEdited(l.id) ? '<span class="badge edit">edited</span>' : '') + (isFlagged(l.id) ? '<span class="badge wrong">wrong</span>' : '');
+      return '<div class="card' + (cur === l.id ? ' current' : '') + '" data-id="' + l.id + '" tabindex="0" role="button" aria-label="Edit ' + l.name + '">' +
+        '<svg viewBox="0 0 100 100" data-road="14">' + guideSvg(l.id, { glyph: false }) + '<g class="demo"></g></svg>' +
+        '<button class="play" data-play="' + l.id + '" aria-label="Play demo for ' + l.name + '">&#9654;</button>' +
+        '<div class="meta"><span class="nm">' + l.char + ' ' + l.name + ' <small>' + l.id + ' · #' + l.drawOrder + '</small></span></div>' +
+        '<div class="badges">' + badges + '</div></div>';
+    }).join('');
+    var ed = LETTERS.filter(function (l) { return isEdited(l.id); }).length, fl = LETTERS.filter(function (l) { return isFlagged(l.id); }).length;
+    $('summary').textContent = ed + ' edited · ' + fl + ' marked wrong';
+  }
+
+  /* ---------- editor ---------- */
+  var edSvg = $('edSvg');
+  function snapVal(v) { var s = +$('snap').value; v = Math.max(0, Math.min(100, v)); return s ? Math.round(v / s) * s : Math.round(v * 10) / 10; }
+
+  function renderEditor() {
+    if (!cur) { $('editor').hidden = true; return; }
+    var l = letter(cur), st = strokesOf(cur), h = '';
+    $('editor').hidden = false;
+    $('edChar').textContent = l.char; $('edName').textContent = l.name + ' (' + l.id + ')';
+    $('edSub').textContent = l.emoji + ' ' + l.word + ' · unlock order #' + l.drawOrder + ' · ' + st.length + ' stroke' + (st.length > 1 ? 's' : '');
+    // grid lines every 10 units
+    for (var g = 10; g < 100; g += 10) h += '<line class="gridline" x1="' + g + '" y1="0" x2="' + g + '" y2="100"/><line class="gridline" x1="0" y1="' + g + '" x2="100" y2="' + g + '"/>';
+    if (prefs.show) h += glyphEl(l);
+    st.forEach(function (s, i) { h += '<path class="road" d="' + pathD(s) + '" stroke-width="12" opacity="0.8"/>'; });
+    st.forEach(function (s, i) {
+      var col = COLORS[i % COLORS.length], sel = i === selStroke;
+      h += '<path d="' + pathD(s) + '" fill="none" stroke="' + col + '" stroke-width="' + (sel ? 1.8 : 1.1) + '" stroke-linecap="round" stroke-linejoin="round" ' + (sel ? '' : 'opacity="0.75"') + '/>';
+      // direction arrow at the end
+      var a = s[s.length - 2], b = s[s.length - 1], ang = Math.atan2(b[1] - a[1], b[0] - a[0]), ax = 3.2, bx = 2.2;
+      h += '<path d="M' + b[0] + ' ' + b[1] + ' L' + (b[0] - ax * Math.cos(ang - 0.5)).toFixed(2) + ' ' + (b[1] - ax * Math.sin(ang - 0.5)).toFixed(2) +
+           ' L' + (b[0] - ax * Math.cos(ang + 0.5)).toFixed(2) + ' ' + (b[1] - ax * Math.sin(ang + 0.5)).toFixed(2) + ' Z" fill="' + col + '"/>';
+      // invisible fat segments to insert points
+      for (var j = 1; j < s.length; j++) h += '<line data-kind="seg" data-s="' + i + '" data-i="' + j + '" x1="' + s[j - 1][0] + '" y1="' + s[j - 1][1] + '" x2="' + s[j][0] + '" y2="' + s[j][1] + '" stroke="transparent" stroke-width="7" stroke-linecap="round" style="cursor:copy"/>';
+    });
+    st.forEach(function (s, i) {
+      var col = COLORS[i % COLORS.length];
+      s.forEach(function (p, j) {
+        var isSel = selPt && selPt.s === i && selPt.i === j;
+        h += '<g class="handle"><circle data-kind="pt" data-s="' + i + '" data-i="' + j + '" cx="' + p[0] + '" cy="' + p[1] + '" r="6" fill="transparent"/>' +
+             '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (j === 0 ? 3.4 : 2.2) + '" fill="' + (j === 0 ? 'var(--ok)' : '#fff') + '" stroke="' + (isSel ? 'var(--bad)' : col) + '" stroke-width="' + (isSel ? 1.6 : 1) + '" pointer-events="none"/>' +
+             (j === 0 ? '<text x="' + p[0] + '" y="' + (p[1] + 1.2) + '" font-size="3.6" class="startnum" style="font-weight:700">' + (i + 1) + '</text>' : '') + '</g>';
+      });
+    });
+    if (adding) {
+      if (adding.length > 1) h += '<path d="' + pathD(adding) + '" fill="none" stroke="var(--pen)" stroke-width="1.4" stroke-dasharray="3 2"/>';
+      adding.forEach(function (p) { h += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="2.2" fill="var(--pen)"/>'; });
+    }
+    h += '<g class="demo"></g>';
+    edSvg.innerHTML = h;
+    renderSide();
+  }
+
+  function renderSide() {
+    var st = strokesOf(cur);
+    $('strokeList').innerHTML = st.map(function (s, i) {
+      return '<div class="stroke-row' + (i === selStroke ? ' sel' : '') + '" data-s="' + i + '"><span class="chip" style="background:' + COLORS[i % COLORS.length] + '"></span>' +
+        '<span class="name" data-act="sel">Stroke ' + (i + 1) + ' <small>' + s.length + ' pts · start ' + s[0][0] + ',' + s[0][1] + '</small></span>' +
+        '<button class="btn sm" data-act="up" title="Draw earlier"' + (i === 0 ? ' disabled' : '') + '>&uarr;</button>' +
+        '<button class="btn sm" data-act="down" title="Draw later"' + (i === st.length - 1 ? ' disabled' : '') + '>&darr;</button>' +
+        '<button class="btn sm" data-act="rev" title="Reverse direction">&#8646; Reverse</button>' +
+        '<button class="btn sm danger" data-act="del"' + (st.length < 2 ? ' disabled' : '') + ' title="Delete stroke">&times;</button></div>';
+    }).join('');
+    var p = selPt && st[selPt.s] && st[selPt.s][selPt.i];
+    $('ptX').value = p ? p[0] : ''; $('ptY').value = p ? p[1] : '';
+    $('ptX').disabled = $('ptY').disabled = $('delPt').disabled = !p;
+    $('undo').disabled = !(undoStack[cur] && undoStack[cur].length);
+    $('redo').disabled = !(redoStack[cur] && redoStack[cur].length);
+    $('resetOne').disabled = !isEdited(cur);
+    var s = state[cur] || { flag: false, note: '' };
+    $('flagWrong').checked = s.flag; $('flagNote').value = s.note || ''; $('flagBox').classList.toggle('on', s.flag);
+    $('addStroke').hidden = !!adding; $('finishStroke').hidden = $('cancelStroke').hidden = !adding;
+    $('finishStroke').disabled = !(adding && adding.length > 1);
+    $('edHint').textContent = adding ? 'Adding a stroke: click or tap the canvas to place points in drawing order, then press Finish stroke.'
+      : 'Drag a point to move it. Drag along a line to add a point. Select a point to nudge it with the arrow keys, or delete it.';
+  }
+
+  function openLetter(id) {
+    cur = id; selStroke = 0; selPt = null; adding = null;
+    renderEditor(); renderGrid();
+    $('editor').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function changed() { persist(); renderEditor(); renderGrid(); }
+
+  /* pointer handling on the canvas */
+  var drag = null;
+  function toSvg(e) { var r = edSvg.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * 100, (e.clientY - r.top) / r.height * 100]; }
+  edSvg.addEventListener('pointerdown', function (e) {
+    if (!cur) return;
+    var t = e.target, kind = t.dataset ? t.dataset.kind : null, pos = toSvg(e);
+    if (adding) { adding.push([snapVal(pos[0]), snapVal(pos[1])]); renderEditor(); return; }
+    if (kind === 'pt') {
+      selStroke = +t.dataset.s; selPt = { s: +t.dataset.s, i: +t.dataset.i };
+      drag = { moved: false }; edSvg.setPointerCapture(e.pointerId); renderEditor();
+    } else if (kind === 'seg') {
+      var s = +t.dataset.s, i = +t.dataset.i;
+      snapshot(cur); ensure(cur).strokes[s].splice(i, 0, [snapVal(pos[0]), snapVal(pos[1])]);
+      selStroke = s; selPt = { s: s, i: i }; drag = { moved: true }; edSvg.setPointerCapture(e.pointerId); changed();
+    } else { selPt = null; renderSide(); renderEditor(); }
+  });
+  edSvg.addEventListener('pointermove', function (e) {
+    if (!drag || !selPt) return;
+    var pos = toSvg(e), p = ensure(cur).strokes[selPt.s][selPt.i], nx = snapVal(pos[0]), ny = snapVal(pos[1]);
+    if (nx === p[0] && ny === p[1]) return;
+    if (!drag.moved) { var keep = clone(p); p[0] = keep[0]; p[1] = keep[1]; snapshotBefore(keep); drag.moved = true; }
+    p[0] = nx; p[1] = ny; persist(); renderEditor(); renderGrid();
+  });
+  function snapshotBefore(oldPt) {
+    var st = clone(strokesOf(cur)); st[selPt.s][selPt.i] = oldPt;
+    (undoStack[cur] = undoStack[cur] || []).push(JSON.stringify(st)); redoStack[cur] = [];
+  }
+  function endDrag() { drag = null; }
+  edSvg.addEventListener('pointerup', endDrag); edSvg.addEventListener('pointercancel', endDrag);
+
+  /* controls */
+  $('strokeList').addEventListener('click', function (e) {
+    var row = e.target.closest('.stroke-row'); if (!row) return;
+    var i = +row.dataset.s, act = e.target.closest('[data-act]'); act = act && act.dataset.act;
+    var st = ensure(cur).strokes;
+    if (act === 'sel') { selStroke = i; selPt = null; renderEditor(); return; }
+    snapshot(cur);
+    if (act === 'rev') st[i].reverse();
+    if (act === 'up' && i > 0) { var a = st.splice(i, 1)[0]; st.splice(i - 1, 0, a); selStroke = i - 1; }
+    if (act === 'down' && i < st.length - 1) { var b = st.splice(i, 1)[0]; st.splice(i + 1, 0, b); selStroke = i + 1; }
+    if (act === 'del' && st.length > 1) { st.splice(i, 1); selStroke = Math.max(0, i - 1); }
+    selPt = null; changed();
+  });
+  $('addStroke').onclick = function () { adding = []; selPt = null; renderEditor(); };
+  $('cancelStroke').onclick = function () { adding = null; renderEditor(); };
+  $('finishStroke').onclick = function () {
+    if (!adding || adding.length < 2) return;
+    snapshot(cur); ensure(cur).strokes.push(adding); selStroke = strokesOf(cur).length - 1; adding = null; changed();
+  };
+  function nudgeInput() {
+    if (!selPt) return;
+    var x = parseFloat($('ptX').value), y = parseFloat($('ptY').value); if (isNaN(x) || isNaN(y)) return;
+    snapshot(cur); var p = ensure(cur).strokes[selPt.s][selPt.i]; p[0] = Math.max(0, Math.min(100, x)); p[1] = Math.max(0, Math.min(100, y)); changed();
+  }
+  $('ptX').onchange = nudgeInput; $('ptY').onchange = nudgeInput;
+  function deletePoint() {
+    if (!selPt) return; var s = ensure(cur).strokes[selPt.s];
+    if (s.length <= 2) { toast('A stroke needs at least 2 points. Delete the stroke instead.'); return; }
+    snapshot(cur); s.splice(selPt.i, 1); selPt = null; changed();
+  }
+  $('delPt').onclick = deletePoint;
+  $('undo').onclick = function () {
+    var u = undoStack[cur]; if (!u || !u.length) return;
+    (redoStack[cur] = redoStack[cur] || []).push(JSON.stringify(strokesOf(cur)));
+    ensure(cur).strokes = JSON.parse(u.pop()); selPt = null; selStroke = Math.min(selStroke, strokesOf(cur).length - 1); changed();
+  };
+  $('redo').onclick = function () {
+    var r = redoStack[cur]; if (!r || !r.length) return;
+    (undoStack[cur] = undoStack[cur] || []).push(JSON.stringify(strokesOf(cur)));
+    ensure(cur).strokes = JSON.parse(r.pop()); selPt = null; changed();
+  };
+  $('resetOne').onclick = function () { snapshot(cur); ensure(cur).strokes = clone(ORIG[cur]); selPt = null; selStroke = 0; changed(); toast('Letter reset to the version in the game.'); };
+  $('playOne').onclick = function () { playDemo(edSvg, cur); };
+  $('prevL').onclick = function () { var i = LETTERS.findIndex(function (l) { return l.id === cur; }); openLetter(LETTERS[(i + LETTERS.length - 1) % LETTERS.length].id); };
+  $('nextL').onclick = function () { var i = LETTERS.findIndex(function (l) { return l.id === cur; }); openLetter(LETTERS[(i + 1) % LETTERS.length].id); };
+  $('closeEd').onclick = function () { cur = null; adding = null; renderEditor(); renderGrid(); };
+  $('flagWrong').onchange = function () { ensure(cur).flag = $('flagWrong').checked; changed(); };
+  $('flagNote').oninput = function () { ensure(cur).note = $('flagNote').value; persist(); };
+
+  $('showGlyph').checked = prefs.show; $('font').value = prefs.font; $('gSize').value = prefs.size; $('gY').value = prefs.y; $('snap').value = String(prefs.snap);
+  function prefChange() {
+    prefs.show = $('showGlyph').checked; prefs.font = $('font').value; prefs.size = +$('gSize').value; prefs.y = +$('gY').value; prefs.snap = +$('snap').value;
+    persist(); if (cur) renderEditor();
+  }
+  ['showGlyph', 'font', 'gSize', 'gY', 'snap'].forEach(function (id) { $(id).addEventListener('input', prefChange); $(id).addEventListener('change', prefChange); });
+
+  document.addEventListener('keydown', function (e) {
+    if (!cur || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); (e.shiftKey ? $('redo') : $('undo')).click(); return; }
+    if (e.key === 'Delete' || e.key === 'Backspace') { if (selPt) { e.preventDefault(); deletePoint(); } return; }
+    if (e.key === 'Enter' && adding) { $('finishStroke').click(); return; }
+    if (e.key === 'Escape' && adding) { $('cancelStroke').click(); return; }
+    var d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+    if (d && selPt) { e.preventDefault(); snapshot(cur); var p = ensure(cur).strokes[selPt.s][selPt.i], k = e.shiftKey ? 5 : 1; p[0] = Math.max(0, Math.min(100, p[0] + d[0] * k)); p[1] = Math.max(0, Math.min(100, p[1] + d[1] * k)); changed(); }
+  });
+
+  /* grid interactions */
+  $('grid').addEventListener('click', function (e) {
+    var play = e.target.closest('[data-play]');
+    var card = e.target.closest('.card');
+    if (play) { e.stopPropagation(); playDemo(play.parentElement.querySelector('svg'), play.dataset.play); return; }
+    if (card) openLetter(card.dataset.id);
+  });
+  $('grid').addEventListener('keydown', function (e) { if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('card')) { e.preventDefault(); openLetter(e.target.dataset.id); } });
+  $('playAll').onclick = function () { document.querySelectorAll('#grid .card').forEach(function (c) { playDemo(c.querySelector('svg'), c.dataset.id); }); };
+
+  /* ---------- export / import ---------- */
+  function round(n) { return Math.round(n * 10) / 10; }
+  function fmtStrokes(st) { return '[' + st.map(function (s) { return '[' + s.map(function (p) { return '[' + round(p[0]) + ', ' + round(p[1]) + ']'; }).join(', ') + ']'; }).join(', ') + ']'; }
+  function changesObject() {
+    var out = { note: 'Letter stroke edits. Coordinates are in a 100x100 box, y down. Each stroke is listed in drawing order, first point = start dot.', letters: {} };
+    LETTERS.forEach(function (l) {
+      if (isEdited(l.id) || isFlagged(l.id)) {
+        var e = {}; if (isEdited(l.id)) e.strokes = strokesOf(l.id).map(function (s) { return s.map(function (p) { return [round(p[0]), round(p[1])]; }); });
+        if (isFlagged(l.id)) { e.markedWrong = true; if (state[l.id].note) e.note = state[l.id].note; }
+        out.letters[l.id] = e;
+      }
+    });
+    return out;
+  }
+  function copy(text, okMsg) {
+    $('out').value = text;
+    var done = function () { toast(okMsg); };
+    var fallback = function () { $('out').focus(); $('out').select(); toast('Select and copy the text in the box (copy was blocked).'); $('exportBox').scrollIntoView({ behavior: 'smooth' }); };
+    try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+  }
+  function copyChanges() {
+    var o = changesObject();
+    if (!Object.keys(o.letters).length) { $('out').value = ''; toast('Nothing to copy yet. Edit a letter or mark one as wrong.'); return; }
+    copy(JSON.stringify(o, null, 1), 'Copied changes for ' + Object.keys(o.letters).length + ' letter(s). Paste them to Claude.');
+  }
+  $('copyChanges').onclick = copyChanges; $('copyChanges2').onclick = copyChanges;
+  $('copyTs').onclick = function () {
+    var lines = LETTERS.map(function (l) { return '  ' + l.id + ': { strokes: ' + fmtStrokes(strokesOf(l.id)) + ' },'; });
+    copy('export const STROKES: Record<string, LetterStrokes> = {\n' + lines.join('\n') + '\n};', 'Copied the strokes.ts block (all 22 letters).');
+  };
+  $('jumpExport').onclick = function () { $('exportBox').scrollIntoView({ behavior: 'smooth' }); };
+  $('resetAll').onclick = function () {
+    if (!$('resetAll').dataset.armed) { $('resetAll').dataset.armed = '1'; $('resetAll').textContent = 'Click again to erase all edits'; setTimeout(function () { delete $('resetAll').dataset.armed; $('resetAll').textContent = 'Reset everything'; }, 3500); return; }
+    state = {}; undoStack = {}; redoStack = {}; persist(); delete $('resetAll').dataset.armed; $('resetAll').textContent = 'Reset everything'; renderEditor(); renderGrid(); toast('All edits erased.');
+  };
+  $('doImport').onclick = function () {
+    try {
+      var o = JSON.parse($('imp').value), n = 0, L = o.letters || o;
+      Object.keys(L).forEach(function (id) {
+        if (!ORIG[id]) return; var e = L[id], s = ensure(id);
+        if (e.strokes) s.strokes = clone(e.strokes); if (e.markedWrong) s.flag = true; if (e.note) s.note = e.note; n++;
+      });
+      persist(); renderEditor(); renderGrid(); toast('Loaded ' + n + ' letter(s).');
+    } catch (err) { toast('That text is not valid JSON from this tool.'); }
+  };
+
+  var toastT;
+  function toast(msg) { var t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 3200); }
+
+  renderGrid();
+  // open the first letter so the editor is visible on load
+  openLetterNoScroll(LETTERS[0].id);
+  function openLetterNoScroll(id) { cur = id; selStroke = 0; renderEditor(); renderGrid(); }
+})();
+</script>
+</body>
+</html>
